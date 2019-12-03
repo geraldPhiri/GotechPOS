@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#fff</color>
+    <color name="colorPrimaryDark">#fff</color>
+    <color name="colorAccent">#000</color>
+    <color name="black">#000</color>
+    <color name="white">#fff</color>
+    <color name="blue">#0011ff</color>
+
+    <color name="tab_select_txt">#5983f0</color>
+    <color name="tab_unselect_txt">#000</color>
+
+    <color name="title_color">#000</color>
+    <color name="edit_profile">#5F76BF</color>
+    <color name="bottom_black_bgcolor">#90000000</color>
+</resources>

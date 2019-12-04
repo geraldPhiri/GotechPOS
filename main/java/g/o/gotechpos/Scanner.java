@@ -1,29 +1,29 @@
 package g.o.gotechpos;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraX;
+import androidx.camera.core.ImageAnalysis;
+import androidx.camera.core.ImageAnalysisConfig;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureConfig;
+import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.core.PreviewConfig;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
 
-
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Matrix;
-import android.net.Uri;
+import android.media.Image;
+import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Rational;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
-import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -52,11 +52,14 @@ public class Scanner extends AppCompatActivity {
     TextureView textureView;
     FirebaseVisionBarcodeDetectorOptions options;
     TextView textViewPrice;
+    MediaPlayer mediaPlayer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.scanner);
+        mediaPlayer = MediaPlayer.create(this, R.raw.beep_1);
+
         textViewPrice=findViewById(R.id.textview_price);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -73,7 +76,6 @@ public class Scanner extends AppCompatActivity {
         } else{
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
         }
-
 
     }
 
@@ -102,87 +104,77 @@ public class Scanner extends AppCompatActivity {
         ImageCaptureConfig imageCaptureConfig = new ImageCaptureConfig.Builder().setCaptureMode(ImageCapture.CaptureMode.MIN_LATENCY)
                 .setTargetRotation(getWindowManager().getDefaultDisplay().getRotation()).build();
         final ImageCapture imgCap = new ImageCapture(imageCaptureConfig);
-        findViewById(R.id.imgCapture).setOnClickListener(new View.OnClickListener() {
+
+        //=================================
+        ImageAnalysisConfig config =
+                new ImageAnalysisConfig.Builder()
+                        .setTargetResolution(new Size(1280, 720))
+                        .setImageReaderMode(ImageAnalysis.ImageReaderMode.ACQUIRE_LATEST_IMAGE)
+                        .build();
+
+        ImageAnalysis imageAnalysis = new ImageAnalysis(config);
+
+        ImageAnalysis.Analyzer analyzer=new ImageAnalysis.Analyzer() {
             @Override
-            public void onClick(View v) {
-                File file = new File(Environment.getExternalStorageDirectory() + "/" + "recent_bar.png");
+            public void analyze(ImageProxy image, int rotationDegrees) {
+                
+                if (image == null || image.getImage() == null) {
+                    return;
+                }
+                Image mediaImage = image.getImage();
+                int rotation = (int)textureView.getRotation();
+                FirebaseVisionImage frame =
+                        FirebaseVisionImage.fromMediaImage(mediaImage,rotation);
+                // Pass image to an ML Kit Vision API
+                FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance()
+                        .getVisionBarcodeDetector();
+                // Or, to specify the formats to recognize:
+                //FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance()
+                //       .getVisionBarcodeDetector(options);
+                Task<List<FirebaseVisionBarcode>> result = detector.detectInImage(frame)
+                        .addOnSuccessListener(new OnSuccessListener<List<FirebaseVisionBarcode>>() {
+                            @Override
+                            public void onSuccess(List<FirebaseVisionBarcode> barcodes) {
+                                // Task completed successfully
+                                for (FirebaseVisionBarcode barcode: barcodes) {
+                                    //Rect bounds = barcode.getBoundingBox();
+                                    //Point[] corners = barcode.getCornerPoints();
+                                    String rawValue = barcode.getRawValue();
+                                    //Toast.makeText(getApplicationContext(),rawValue,Toast.LENGTH_LONG).show();
+                                    try {
+                                        FileInputStream fis = openFileInput(rawValue+".txt");
+                                        java.util.Scanner sc=new java.util.Scanner(fis);
+                                        mediaPlayer.start(); // no need to call prepare(); create() does that for you
+                                        String name=sc.nextLine();
+                                        String price=sc.nextLine();
+                                        totalPrice+=Integer.parseInt(price);
+                                        textViewPrice.setText("k "+totalPrice);
 
-                imgCap.takePicture(file, new ImageCapture.OnImageSavedListener() {
-                    @Override
-                    public void onImageSaved(@NonNull File file) {
-                        String msg = "Pic captured at " + file.getAbsolutePath();
-                        Toast.makeText(getBaseContext(), msg,Toast.LENGTH_LONG).show();
+                                    }
 
-                        FirebaseVisionImage image;
-                        try {
-                            image = FirebaseVisionImage.fromFilePath(Scanner.this, Uri.fromFile(file));
-                            FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance()
-                                    .getVisionBarcodeDetector();
-                            // Or, to specify the formats to recognize:
-                             //FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance()
-                             //       .getVisionBarcodeDetector(options);
-                            Task<List<FirebaseVisionBarcode>> result = detector.detectInImage(image)
-                                    .addOnSuccessListener(new OnSuccessListener<List<FirebaseVisionBarcode>>() {
-                                        @Override
-                                        public void onSuccess(List<FirebaseVisionBarcode> barcodes) {
-                                            // Task completed successfully
-                                            for (FirebaseVisionBarcode barcode: barcodes) {
-                                                //Rect bounds = barcode.getBoundingBox();
-                                                //Point[] corners = barcode.getCornerPoints();
-                                                String rawValue = barcode.getRawValue();
-                                                //Toast.makeText(getApplicationContext(),rawValue,Toast.LENGTH_LONG).show();
-                                                try {
-                                                    FileInputStream fis = openFileInput(rawValue+".txt");
-                                                    java.util.Scanner sc=new java.util.Scanner(fis);
-                                                    String name=sc.nextLine();
-                                                    String price=sc.nextLine();
-                                                    totalPrice+=Integer.parseInt(price);
-                                                    textViewPrice.setText(totalPrice+"");
+                                    catch(FileNotFoundException e){
+                                        startActivity(new Intent(Scanner.this,AddProduct.class).putExtra("barcode",rawValue));
+                                    }
 
-                                                }
-                                                catch(FileNotFoundException e){
-                                                    startActivity(new Intent(Scanner.this,AddProduct.class).putExtra("barcode",rawValue));
-                                                }
+                                }
+                            }
+                        })
+                        .addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                // Task failed with an exception
+                                // ...
+                            }
+                        });
 
-                                                //int valueType = barcode.getValueType();
-                                                // See API reference for complete list of supported types
-                                                /*switch (valueType) {
-                                                    case FirebaseVisionBarcode.TYPE_URL:
-                                                        String title = barcode.getUrl().getTitle();
-                                                        String url = barcode.getUrl().getUrl();
-                                                        break;
-                                                }*/
-                                            }
-                                        }
-                                    })
-                                    .addOnFailureListener(new OnFailureListener() {
-                                        @Override
-                                        public void onFailure(@NonNull Exception e) {
-                                            // Task failed with an exception
-                                            // ...
-                                        }
-                                    });
-
-                        } catch (Exception e) {
-                            Toast.makeText(getApplicationContext(),e.toString(),Toast.LENGTH_LONG).show();
-                        }
-
-                    }
-
-                    @Override
-                    public void onError(@NonNull ImageCapture.UseCaseError useCaseError, @NonNull String message, @Nullable Throwable cause) {
-                        String msg = "Pic capture failed : " + message;
-                        Toast.makeText(getBaseContext(), msg,Toast.LENGTH_LONG).show();
-                        if(cause != null){
-                            cause.printStackTrace();
-                        }
-                    }
-                });
             }
-        });
+        };
 
-        //bind to lifecycle:
-        CameraX.bindToLifecycle((LifecycleOwner)this, preview, imgCap);
+        imageAnalysis.setAnalyzer(analyzer);
+
+        CameraX.bindToLifecycle((LifecycleOwner) this, imageAnalysis, preview);
+        //=================================
+
     }
 
     private void updateTransform(){

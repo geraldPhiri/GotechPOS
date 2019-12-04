@@ -43,6 +43,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.List;
 
 public class Scanner extends AppCompatActivity {
@@ -115,9 +118,10 @@ public class Scanner extends AppCompatActivity {
         ImageAnalysis imageAnalysis = new ImageAnalysis(config);
 
         ImageAnalysis.Analyzer analyzer=new ImageAnalysis.Analyzer() {
+            String holder="";
+
             @Override
             public void analyze(ImageProxy image, int rotationDegrees) {
-                
                 if (image == null || image.getImage() == null) {
                     return;
                 }
@@ -140,6 +144,10 @@ public class Scanner extends AppCompatActivity {
                                     //Rect bounds = barcode.getBoundingBox();
                                     //Point[] corners = barcode.getCornerPoints();
                                     String rawValue = barcode.getRawValue();
+                                    if(holder.equals(rawValue)){
+                                        break;
+                                    }
+                                    holder=rawValue;
                                     //Toast.makeText(getApplicationContext(),rawValue,Toast.LENGTH_LONG).show();
                                     try {
                                         FileInputStream fis = openFileInput(rawValue+".txt");
@@ -149,6 +157,7 @@ public class Scanner extends AppCompatActivity {
                                         String price=sc.nextLine();
                                         totalPrice+=Integer.parseInt(price);
                                         textViewPrice.setText("k "+totalPrice);
+
 
                                     }
 

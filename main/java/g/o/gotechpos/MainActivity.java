@@ -17,12 +17,20 @@ public class MainActivity extends AppCompatActivity {
 
     public void onCardClick(View view){
         switch (view.getId()){
+            case R.id.card_profile:
+                startActivity(new Intent(this, Profile.class));
+                break;
+
             case R.id.card_scanner:
                 startActivity(new Intent(this, Scanner.class));
                 break;
 
             case R.id.card_stock:
                 startActivity(new Intent(this,Stock.class));
+                break;
+
+            case R.id.card_reports:
+                startActivity(new Intent(this,Reports.class));
                 break;
         }
     }

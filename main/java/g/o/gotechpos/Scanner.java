@@ -3,18 +3,24 @@ package g.o.gotechpos;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.CameraControl;
 import androidx.camera.core.CameraX;
+import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageAnalysisConfig;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureConfig;
 import androidx.camera.core.ImageProxy;
+import androidx.camera.core.MeteringPoint;
 import androidx.camera.core.Preview;
 import androidx.camera.core.PreviewConfig;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -24,6 +30,8 @@ import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.util.Rational;
 import android.util.Size;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -33,6 +41,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -58,6 +67,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
@@ -67,11 +77,19 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import co.dift.ui.SwipeToAction;
+
 public class Scanner extends AppCompatActivity {
     FirebaseDatabase database;
     DatabaseReference reference;
     DatabaseReference referenceToUserReport;
 
+    //to store content in database
+    private List<String> fullProductNames=new ArrayList<String>();
+    private List<String> fullProductPrices=new ArrayList<String>();
+    private List<String> fullBarcodes=new ArrayList<String>();
+
+    //to store content read by scanner
     private List<String> productName=new ArrayList<String>();
     private List<String> productPrice=new ArrayList<String>();
     private List<String> date=new ArrayList<String>();
@@ -94,15 +112,44 @@ public class Scanner extends AppCompatActivity {
 
         mediaPlayer = MediaPlayer.create(this, R.raw.beep_1);
 
+        //fill full lists
+        Intent intent=getIntent();
+        fullProductNames=(List<String>) intent.getSerializableExtra("names");
+        fullProductPrices=(List<String>) intent.getSerializableExtra("prices");
+        fullBarcodes=(List<String>) intent.getSerializableExtra("barcodes");
+        for(String s:fullProductNames){
+            Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG).show();
+        }
+
+
+
+      /*try {
+          FileInputStream fis = openFileInput("name_price_code.txt");
+          java.util.Scanner sc=new java.util.Scanner(fis);
+          while(sc.hasNextLine()) {
+              String name = sc.nextLine();
+              fullProductNames.add(name);
+              String price = sc.nextLine();
+              fullProductPrices.add(price);
+              String barcode1 = sc.nextLine();
+              fullBarcodes.add(barcode1);
+              Toast.makeText(getApplicationContext(), barcode1, Toast.LENGTH_SHORT).show();
+          }
+      }
+      catch (FileNotFoundException e){
+          Toast.makeText(getApplicationContext(),"error",Toast.LENGTH_LONG).show();
+          finish();
+      }*/
+
         textViewPrice=findViewById(R.id.textview_price);
         textViewCustomersCash=findViewById(R.id.cash_from_customer);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         options = new FirebaseVisionBarcodeDetectorOptions.Builder()
-                        .setBarcodeFormats(
-                                FirebaseVisionBarcode.FORMAT_AZTEC)
-                        .build();
+                .setBarcodeFormats(
+                        FirebaseVisionBarcode.FORMAT_AZTEC)
+                .build();
 
         textureView = findViewById(R.id.view_finder);
         if(allPermissionsGranted()){
@@ -120,12 +167,14 @@ public class Scanner extends AppCompatActivity {
 
         PreviewConfig pConfig = new PreviewConfig.Builder().setTargetAspectRatio(aspectRatio).setTargetResolution(screen).build();
         Preview preview = new Preview(pConfig);
+        preview.enableTorch(true);
         preview.setOnPreviewOutputUpdateListener(
                 new Preview.OnPreviewOutputUpdateListener() {
                     //to update the surface texture we  have to destroy it first then re-add it
                     @Override
                     public void onUpdated(Preview.PreviewOutput output){
                         ViewGroup parent = (ViewGroup) textureView.getParent();
+                        textureView.setFocusable(true);
                         parent.removeView(textureView);
                         parent.addView(textureView, 0);
 
@@ -143,7 +192,7 @@ public class Scanner extends AppCompatActivity {
         ImageAnalysisConfig config =
                 new ImageAnalysisConfig.Builder()
                         .setTargetResolution(new Size(1280, 720))
-                        .setImageReaderMode(ImageAnalysis.ImageReaderMode.ACQUIRE_LATEST_IMAGE)
+                        //.setImageReaderMode()
                         .build();
 
         ImageAnalysis imageAnalysis = new ImageAnalysis(config);
@@ -180,22 +229,19 @@ public class Scanner extends AppCompatActivity {
                                     }
                                     holder=rawValue;
                                     //Toast.makeText(getApplicationContext(),rawValue,Toast.LENGTH_LONG).show();
-                                    try {
-                                        FileInputStream fis = openFileInput(rawValue+".txt");
-                                        java.util.Scanner sc=new java.util.Scanner(fis);
+                                    int index=fullBarcodes.indexOf(rawValue);
+                                    if(index==-1){
+                                        startActivity(new Intent(Scanner.this,AddProduct.class).putExtra("barcode",rawValue));
+                                    }
+                                    else {
                                         mediaPlayer.start(); // no need to call prepare(); create() does that for you
-                                        String name=sc.nextLine();
+                                        String name = fullProductNames.get(index);
                                         productName.add(name);
-                                        String price=sc.nextLine();
+                                        String price = fullProductPrices.get(index);
                                         productPrice.add(price);
                                         date.add(new SimpleDateFormat("dd-MM-yyyy").format(new Date()));
-                                        totalPrice+=Integer.parseInt(price);
-                                        textViewPrice.setText("k "+totalPrice);
-
-
-                                    }
-                                    catch(FileNotFoundException e){
-                                        startActivity(new Intent(Scanner.this,AddProduct.class).putExtra("barcode",rawValue));
+                                        totalPrice += Integer.parseInt(price);
+                                        textViewPrice.setText("k " + totalPrice);
                                     }
 
                                 }
@@ -276,81 +322,158 @@ public class Scanner extends AppCompatActivity {
 
 
     public void calcChange(View view){
-        float change=Float.parseFloat(textViewCustomersCash.getText().toString())-Float.parseFloat(textViewPrice.getText().toString().substring(2));
-        //ToDo:show receipt
-        //Toast.makeText(getApplicationContext(),""+change,Toast.LENGTH_LONG).show();
-        Snackbar.make((RelativeLayout)findViewById(R.id.rl),"Change: k"+change,Snackbar.LENGTH_INDEFINITE).setAction("OK", new View.OnClickListener(){
-            @Override
-            public void onClick(View view){
-                
+        if(!textViewCustomersCash.getText().toString().isEmpty() & totalPrice!=0F) {
+            float change = Float.parseFloat(textViewCustomersCash.getText().toString()) - Float.parseFloat(textViewPrice.getText().toString().substring(2));
+            //Toast.makeText(getApplicationContext(),""+change,Toast.LENGTH_LONG).show();
+            Snackbar.make((RelativeLayout) findViewById(R.id.rl), "Change: k" + change, Snackbar.LENGTH_INDEFINITE).setAction("OK", new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                }
+            }).setActionTextColor(Color.parseColor("#00AAFF")).show();
+
+            //update firebase database stock
+            for (String productName : productName) {
+                Query query = reference.orderByChild("0").equalTo(productName);
+
+                query.addChildEventListener(new ChildEventListener() {
+                    @Override
+                    public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                        ArrayList<String> item = dataSnapshot.getValue(new GenericTypeIndicator<ArrayList<String>>() {
+                        });
+                        final String itemName = item.get(0);
+                        final String itemCount = item.get(1);
+                        //Toast.makeText(getApplicationContext(),itemName,Toast.LENGTH_LONG).show();
+                        reference.child(dataSnapshot.getKey()).child("1").runTransaction(new Transaction.Handler() {
+
+                            @NonNull
+                            @Override
+                            public Transaction.Result doTransaction(@NonNull MutableData mutableData) {
+                                //ToDo:write logic for fail to update stock
+                                String count = mutableData.getValue(String.class);
+                                mutableData.setValue(Integer.parseInt(count) - 1 + "");
+                                return Transaction.success(mutableData);
+                            }
+
+                            @Override
+                            public void onComplete(@Nullable DatabaseError databaseError, boolean b, @Nullable DataSnapshot dataSnapshot) {
+                                Toast.makeText(getApplicationContext(),b+"",Toast.LENGTH_LONG).show();
+                            }
+
+
+                        });
+                    }
+
+                    @Override
+                    public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+                    }
+
+                    @Override
+                    public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+
+                    }
+
+                    @Override
+                    public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                    }
+                });
+
             }
-        }).setActionTextColor(Color.parseColor("#00AAFF")).show();
 
-        //update firebase database stock
-        for(String productName:productName){
-            Query query = reference.orderByChild("0").equalTo(productName);
+            //update report
+            String cashierUID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            List<List<String>> item = new ArrayList<List<String>>();
+            for (int i = 0; i < productName.size(); i++) {
+                List singleItem = new ArrayList();
+                singleItem.add(productName.get(i));
+                singleItem.add(productPrice.get(i));
+                singleItem.add(date.get(i));
+                singleItem.add(cashierUID);
+                item.add(singleItem);
+            }
 
-            query.addChildEventListener(new ChildEventListener() {
+            referenceToUserReport.push().setValue(item).addOnCompleteListener(new OnCompleteListener<Void>() {
                 @Override
-                public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                    ArrayList<String> item=dataSnapshot.getValue(new GenericTypeIndicator<ArrayList<String>>(){});
-                    final String itemName=item.get(0);
-                    final String itemCount=item.get(1);
-                    //Toast.makeText(getApplicationContext(),itemName,Toast.LENGTH_LONG).show();
-                    reference.child(dataSnapshot.getKey()).child("1").runTransaction(new Transaction.Handler() {
+                public void onComplete(@NonNull Task<Void> task) {
+                    if(task.isSuccessful()){
 
-                        @NonNull
-                        @Override
-                        public Transaction.Result doTransaction(@NonNull MutableData mutableData) {
-                            //ToDo:write logic for fail to update stock
-                            String count=mutableData.getValue(String.class);
-                            mutableData.setValue(Integer.parseInt(count)-1+"");
-                            return Transaction.success(mutableData);
-                        }
+                    }
+                    else{
 
-                        @Override
-                        public void onComplete(@Nullable DatabaseError databaseError, boolean b, @Nullable DataSnapshot dataSnapshot) {
-
-                        }
-                    });
-                }
-
-                @Override
-                public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-
-                }
-
-                @Override
-                public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
-
-                }
-
-                @Override
-                public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-
-                }
-
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-
+                    }
                 }
             });
-
         }
-
-        //update report
-        String cashierUID=FirebaseAuth.getInstance().getCurrentUser().getUid();
-        List<List<String>> item=new ArrayList<List<String>>();
-        for(int i=0;i<productName.size();i++){
-            List singleItem=new ArrayList();
-            singleItem.add(productName.get(i));
-            singleItem.add(productPrice.get(i));
-            singleItem.add(date.get(i));
-            singleItem.add(cashierUID);
-            item.add(singleItem);
+        else{
+            Toast.makeText(getApplicationContext(),"Make sure to scan atleast one product and to enter cash recieved ",Toast.LENGTH_LONG).show();
         }
+    }//calcChange()
 
-        referenceToUserReport.push().setValue(item);
+    /*CameraControl cameraControl = CameraX.getCameraControl(CameraX.LensFacing.BACK);
+    private void setUpTapToFocus() {
+        textureView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() != MotionEvent.ACTION_UP) {
+                *//* Original post returns false here, but in my experience this makes
+                onTouch not being triggered for ACTION_UP event *//*
+                    return true;
+                }
+                TextureViewMeteringPointFactory factory = new TextureViewMeteringPointFactory(textureView);
+                MeteringPoint point = factory.createPoint(event.getX(), event.getY());
+                FocusMeteringAction action = FocusMeteringAction.Builder.from(point).build();
+                cameraControl.startFocusAndMetering(action);
+                return true;
+            }
+        });
+    }*/
+
+
+    public void undo(View view){
+        Intent intent=new Intent(Scanner.this,Undo.class);
+        intent.putExtra("names", (Serializable) productName);
+        intent.putExtra("prices", (Serializable) productPrice);
+        intent.putExtra("dates",(Serializable)date);
+        startActivityForResult(intent,1);
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent intent) {
+        super.onActivityResult(requestCode, resultCode, intent);
+        if(requestCode==1){
+            if(resultCode==RESULT_OK){
+
+                productName=(List<String>) intent.getSerializableExtra("names");
+                productPrice=(List<String>) intent.getSerializableExtra("prices");
+                date=(List<String>) intent.getSerializableExtra("dates");
+                //subtract what was deleted from the total
+                List<String> removed=(List<String>) intent.getSerializableExtra("removed");
+
+                for(String remove:removed){
+                    totalPrice-=Float.parseFloat(remove);
+                }
+
+                textViewPrice.setText("k "+totalPrice);
+            }
+        }
+
+    }
+
+    @Override
+    public void onDestroy(){
+        CameraX.unbindAll();
+        super.onDestroy();
+    }
+
+    //ToDo: stop reading frames when a Dialog is shown and also while we are doing work in onActivityResult
 }
+
+
+

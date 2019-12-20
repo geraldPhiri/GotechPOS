@@ -1,10 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
+    android:id="@+id/rl"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#fff"
     >
+    <ImageView
+        android:layout_margin="30sp"
+        android:onClick="undo"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:src="@drawable/ic_undo"
+        android:background="@drawable/blue_conered_rect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
 
     <TextureView
         android:id="@+id/view_finder"
@@ -24,7 +34,7 @@
         >
         <TextView
             android:id="@+id/textview_price"
-            android:text="0"
+            android:text="k 0"
             android:textSize="22sp"
             android:textColor="#fff"
             android:gravity="center"
@@ -41,10 +51,15 @@
             android:layout_width="0sp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:onClick="calcChange"
             />
 
-        <TextView
-            android:layout_width="0sp"
+        <EditText
+            android:layout_marginLeft="30sp"
+            android:id="@+id/cash_from_customer"
+            android:background="@drawable/conered_rect"
+            android:layout_width="wrap_content"
+            android:singleLine="true"
             android:gravity="center"
             android:layout_height="wrap_content"
             android:layout_weight="1"

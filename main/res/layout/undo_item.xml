@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"  android:layout_width="match_parent" android:layout_height="50sp">
+	<RelativeLayout android:tag="reveal-right"
+		android:background="#ff03"
+		android:layout_width="match_parent"
+		android:layout_height="50sp">
+		<ImageView
+            android:layout_width="match_parent"
+            android:layout_height="50sp"
+            android:layout_marginLeft="20dp"
+            android:src="@drawable/ic_delete"
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true" />
+	</RelativeLayout>
+	<RelativeLayout android:tag="reveal-left" android:background="#ff03" android:layout_width="match_parent" android:layout_height="50sp">
+		<ImageView android:layout_width="match_parent" android:layout_height="50sp" android:layout_marginRight="20dp"
+			android:src="@drawable/ic_delete" android:layout_alignParentRight="true" android:layout_centerVertical="true" />
+	</RelativeLayout>
+	<RelativeLayout android:tag="front"
+		android:background="#ffffff" android:padding="10sp" android:layout_width="match_parent" android:layout_height="50sp">
+		<TextView
+            android:id="@+id/title"
+            android:textSize="16dp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:singleLine="true"
+            android:layout_centerVertical="true" />
+	</RelativeLayout>
+</FrameLayout>

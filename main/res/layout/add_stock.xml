@@ -42,7 +42,7 @@
         android:layout_width="wrap_content"
         android:layout_height="10sp"/>
     <TextView
-        android:text="Count"
+        android:text="Number of product"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
     <Space
@@ -50,6 +50,21 @@
         android:layout_height="10sp"/>
     <EditText
         android:id="@+id/product_count"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:singleLine="true"/>
+    <Space
+        android:layout_width="wrap_content"
+        android:layout_height="10sp"/>
+    <TextView
+        android:text="Barcode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+    <Space
+        android:layout_width="wrap_content"
+        android:layout_height="10sp"/>
+    <EditText
+        android:id="@+id/product_barcode"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:singleLine="true"/>

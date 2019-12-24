@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:id="@+id/rl"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#fff"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <com.journeyapps.barcodescanner.BarcodeView
+        android:orientation="vertical"
+        android:id="@+id/fragmentg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        >
+
+    </com.journeyapps.barcodescanner.BarcodeView>
+    <ImageView
+        android:layout_margin="30sp"
+        android:onClick="undo"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:src="@drawable/ic_undo"
+        android:background="@drawable/blue_conered_rect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <TextureView
+        android:id="@+id/view_finder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+
+        />
+    <LinearLayout
+        android:id="@+id/ll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="4sp"
+        android:gravity="center"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="34sp"
+        android:weightSum="3"
+        >
+        <TextView
+            android:id="@+id/textview_price"
+            android:text="k 0"
+            android:textSize="22sp"
+            android:textColor="#fff"
+            android:gravity="center"
+            android:layout_width="0sp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/imgCapture"
+            android:src="@drawable/ic_add"
+            android:backgroundTint="#00AAFF"
+            android:tint="#fff"
+            android:layout_width="0sp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="calcChange"
+            />
+
+        <EditText
+            android:layout_marginLeft="30sp"
+            android:id="@+id/cash_from_customer"
+            android:background="@drawable/conered_rect"
+            android:layout_width="wrap_content"
+            android:singleLine="true"
+            android:gravity="center"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            />
+    </LinearLayout>
+
+</RelativeLayout>

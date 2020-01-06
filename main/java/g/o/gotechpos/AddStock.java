@@ -1,8 +1,11 @@
 package g.o.gotechpos;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -17,19 +20,29 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class AddStock extends AppCompatActivity {
-    EditText editTextName,editTextCount,editTextPrice,editTextBarcode;
+    String[] units={"mL","L","g","Kg"};
+
+    EditText editTextName,editTextCount,editTextPrice,editTextBarcode,editTextUnit;
 
     FirebaseDatabase database;
     DatabaseReference reference;
+
+    Spinner spinner;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.add_stock);
+
         editTextName=findViewById(R.id.product_name);
         editTextPrice=findViewById(R.id.product_price);
         editTextCount=findViewById(R.id.product_count);
         editTextBarcode=findViewById(R.id.product_barcode);
+        editTextUnit=findViewById(R.id.product_unit);
+        spinner=findViewById(R.id.spinner);
+
+        ArrayAdapter adapter=new ArrayAdapter(this,android.R.layout.simple_spinner_dropdown_item,units);
+        spinner.setAdapter(adapter);
 
         database= FirebaseDatabase.getInstance();
         reference=database.getReference("ProductionDB/Stock/");
@@ -42,6 +55,7 @@ public class AddStock extends AppCompatActivity {
         String count=editTextCount.getText().toString();
         String price=editTextPrice.getText().toString();
         String barcode=editTextBarcode.getText().toString();
+        String unit=editTextUnit.getText().toString()+" "+spinner.getSelectedItem().toString();
 
         /*try {
             FileOutputStream fos = openFileOutput(getIntent().getStringExtra("barcode") + ".txt", MODE_PRIVATE);
@@ -54,7 +68,7 @@ public class AddStock extends AppCompatActivity {
             Toast.makeText(getApplicationContext(),ex.toString(),Toast.LENGTH_LONG).show();
         }*/
 
-        reference.child(barcode).setValue(new ArrayList<String>(Arrays.asList(name,count,price)));
+        reference.child(barcode).setValue(new ArrayList<String>(Arrays.asList(name,count,price,unit)));
 
 
         finish();

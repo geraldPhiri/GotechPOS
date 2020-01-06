@@ -3,47 +3,27 @@ package g.o.gotechpos;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.CameraControl;
-import androidx.camera.core.CameraX;
-import androidx.camera.core.FocusMeteringAction;
-import androidx.camera.core.ImageAnalysis;
-import androidx.camera.core.ImageAnalysisConfig;
-import androidx.camera.core.ImageCapture;
-import androidx.camera.core.ImageCaptureConfig;
-import androidx.camera.core.ImageProxy;
-import androidx.camera.core.MeteringPoint;
-import androidx.camera.core.Preview;
-import androidx.camera.core.PreviewConfig;
+
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.lifecycle.LifecycleOwner;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.graphics.Matrix;
-import android.media.Image;
+
 import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.util.Rational;
-import android.util.Size;
-import android.view.LayoutInflater;
-import android.view.MotionEvent;
-import android.view.Surface;
+
 import android.view.TextureView;
 import android.view.View;
-import android.view.ViewGroup;
+
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
+
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
@@ -56,30 +36,35 @@ import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.MutableData;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.Transaction;
-import com.google.firebase.ml.vision.FirebaseVision;
-import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode;
-import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetector;
-import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions;
-import com.google.firebase.ml.vision.common.FirebaseVisionImage;
+
+import com.google.zxing.ResultPoint;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
+import com.journeyapps.barcodescanner.BarcodeCallback;
+import com.journeyapps.barcodescanner.BarcodeResult;
+import com.journeyapps.barcodescanner.BarcodeView;
+import com.journeyapps.barcodescanner.camera.CameraSettings;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
-import java.time.LocalTime;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
+
 import java.util.ArrayList;
+
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
-import co.dift.ui.SwipeToAction;
 
 public class Scanner extends AppCompatActivity {
+    String uuid;
+
     FirebaseDatabase database;
     DatabaseReference reference;
     DatabaseReference referenceToUserReport;
@@ -94,13 +79,16 @@ public class Scanner extends AppCompatActivity {
     private List<String> productPrice=new ArrayList<String>();
     private List<String> date=new ArrayList<String>();
 
+    private List<String> timeStamp=new ArrayList<String>();
     private float totalPrice=0F;
-    private int REQUEST_CODE_PERMISSIONS = 101;
+    private final int REQUEST_CODE_PERMISSIONS = 101;
     private final String[] REQUIRED_PERMISSIONS = new String[]{"android.permission.CAMERA", "android.permission.WRITE_EXTERNAL_STORAGE"};
     TextureView textureView;
-    FirebaseVisionBarcodeDetectorOptions options;
     TextView textViewPrice, textViewCustomersCash;
     MediaPlayer mediaPlayer;
+
+    BarcodeView barcodeView;
+    // IntentIntegrator scanIntegrator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,201 +96,89 @@ public class Scanner extends AppCompatActivity {
         setContentView(R.layout.scanner);
         database=FirebaseDatabase.getInstance();
         reference=database.getReference("ProductionDB/Stock/");
+
         referenceToUserReport=database.getReference("ProductionDB/Reports/");
 
+
         mediaPlayer = MediaPlayer.create(this, R.raw.beep_1);
+
+        barcodeView=findViewById(R.id.fragmentg);
+        CameraSettings cameraSettings=new CameraSettings();
+        CameraSettings.FocusMode focusMode=cameraSettings.getFocusMode();
+        cameraSettings.setFocusMode(CameraSettings.FocusMode.MACRO);
+        barcodeView.setCameraSettings(cameraSettings);
+        //barcodeView.setTorch(true);
 
         //fill full lists
         Intent intent=getIntent();
         fullProductNames=(List<String>) intent.getSerializableExtra("names");
         fullProductPrices=(List<String>) intent.getSerializableExtra("prices");
         fullBarcodes=(List<String>) intent.getSerializableExtra("barcodes");
-        for(String s:fullProductNames){
+        /*for(String s:fullProductNames){
             Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG).show();
-        }
+        }*/
 
 
-
-      /*try {
-          FileInputStream fis = openFileInput("name_price_code.txt");
-          java.util.Scanner sc=new java.util.Scanner(fis);
-          while(sc.hasNextLine()) {
-              String name = sc.nextLine();
-              fullProductNames.add(name);
-              String price = sc.nextLine();
-              fullProductPrices.add(price);
-              String barcode1 = sc.nextLine();
-              fullBarcodes.add(barcode1);
-              Toast.makeText(getApplicationContext(), barcode1, Toast.LENGTH_SHORT).show();
-          }
-      }
-      catch (FileNotFoundException e){
-          Toast.makeText(getApplicationContext(),"error",Toast.LENGTH_LONG).show();
-          finish();
-      }*/
 
         textViewPrice=findViewById(R.id.textview_price);
         textViewCustomersCash=findViewById(R.id.cash_from_customer);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        options = new FirebaseVisionBarcodeDetectorOptions.Builder()
-                .setBarcodeFormats(
-                        FirebaseVisionBarcode.FORMAT_AZTEC)
-                .build();
 
         textureView = findViewById(R.id.view_finder);
         if(allPermissionsGranted()){
-            startCamera(); //start camera if permission has been granted by user
+            //startCamera(); //start camera if permission has been granted by user
+
+            //scanIntegrator = new IntentIntegrator(Scanner.this);
+            barcodeView.resume();
+            barcodeView.decodeContinuous(new BarcodeCallback() {
+                @Override
+                public void barcodeResult(BarcodeResult barcodeResult) {
+                    barcodeView.pause();
+                    String b=barcodeResult.getText();
+                    int index=fullBarcodes.indexOf(b);
+                    if(index==-1){
+                        startActivity(new Intent(Scanner.this,AddProduct.class).putExtra("barcode",b));
+                    }
+                    else {
+                        mediaPlayer.start(); // no need to call prepare(); create() does that for you
+                        timeStamp.add(""+barcodeResult.getTimestamp());
+                        String name = fullProductNames.get(index);
+                        productName.add(name);
+                        String price = fullProductPrices.get(index);
+                        productPrice.add(price);
+                        date.add(new SimpleDateFormat("dd-MM-yyyy").format(new Date()));
+                        totalPrice += Integer.parseInt(price);
+                        textViewPrice.setText("k " + totalPrice);
+                    }
+                    barcodeView.resume();
+                }
+
+                @Override
+                public void possibleResultPoints(List<ResultPoint> list) {
+
+                }
+            });
+            //scanIntegrator.setPrompt("Scan a Barcode");
+            /*scanIntegrator.setBeepEnabled(true);
+            scanIntegrator.setOrientationLocked(false);
+            scanIntegrator.setBarcodeImageEnabled(true);
+            scanIntegrator.initiateScan();
+*/
         } else{
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
         }
 
     }
 
-    private void startCamera() {
-        CameraX.unbindAll();
-        Rational aspectRatio = new Rational (textureView.getWidth(), textureView.getHeight());
-        Size screen = new Size(textureView.getWidth(), textureView.getHeight()); //size of the screen
-
-        PreviewConfig pConfig = new PreviewConfig.Builder().setTargetAspectRatio(aspectRatio).setTargetResolution(screen).build();
-        Preview preview = new Preview(pConfig);
-        preview.enableTorch(true);
-        preview.setOnPreviewOutputUpdateListener(
-                new Preview.OnPreviewOutputUpdateListener() {
-                    //to update the surface texture we  have to destroy it first then re-add it
-                    @Override
-                    public void onUpdated(Preview.PreviewOutput output){
-                        ViewGroup parent = (ViewGroup) textureView.getParent();
-                        textureView.setFocusable(true);
-                        parent.removeView(textureView);
-                        parent.addView(textureView, 0);
-
-                        textureView.setSurfaceTexture(output.getSurfaceTexture());
-                        updateTransform();
-                    }
-                });
-
-
-        ImageCaptureConfig imageCaptureConfig = new ImageCaptureConfig.Builder().setCaptureMode(ImageCapture.CaptureMode.MIN_LATENCY)
-                .setTargetRotation(getWindowManager().getDefaultDisplay().getRotation()).build();
-        final ImageCapture imgCap = new ImageCapture(imageCaptureConfig);
-
-        //=================================
-        ImageAnalysisConfig config =
-                new ImageAnalysisConfig.Builder()
-                        .setTargetResolution(new Size(1280, 720))
-                        //.setImageReaderMode()
-                        .build();
-
-        ImageAnalysis imageAnalysis = new ImageAnalysis(config);
-
-        ImageAnalysis.Analyzer analyzer=new ImageAnalysis.Analyzer() {
-            String holder="";
-
-            @Override
-            public void analyze(ImageProxy image, int rotationDegrees) {
-                if (image == null || image.getImage() == null) {
-                    return;
-                }
-                Image mediaImage = image.getImage();
-                int rotation = (int)textureView.getRotation();
-                FirebaseVisionImage frame =
-                        FirebaseVisionImage.fromMediaImage(mediaImage,rotation);
-                // Pass image to an ML Kit Vision API
-                FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance()
-                        .getVisionBarcodeDetector();
-                // Or, to specify the formats to recognize:
-                //FirebaseVisionBarcodeDetector detector = FirebaseVision.getInstance()
-                //       .getVisionBarcodeDetector(options);
-                Task<List<FirebaseVisionBarcode>> result = detector.detectInImage(frame)
-                        .addOnSuccessListener(new OnSuccessListener<List<FirebaseVisionBarcode>>() {
-                            @Override
-                            public void onSuccess(List<FirebaseVisionBarcode> barcodes) {
-                                // Task completed successfully
-                                for (FirebaseVisionBarcode barcode: barcodes) {
-                                    //Rect bounds = barcode.getBoundingBox();
-                                    //Point[] corners = barcode.getCornerPoints();
-                                    String rawValue = barcode.getRawValue();
-                                    if(holder.equals(rawValue)){
-                                        break;
-                                    }
-                                    holder=rawValue;
-                                    //Toast.makeText(getApplicationContext(),rawValue,Toast.LENGTH_LONG).show();
-                                    int index=fullBarcodes.indexOf(rawValue);
-                                    if(index==-1){
-                                        startActivity(new Intent(Scanner.this,AddProduct.class).putExtra("barcode",rawValue));
-                                    }
-                                    else {
-                                        mediaPlayer.start(); // no need to call prepare(); create() does that for you
-                                        String name = fullProductNames.get(index);
-                                        productName.add(name);
-                                        String price = fullProductPrices.get(index);
-                                        productPrice.add(price);
-                                        date.add(new SimpleDateFormat("dd-MM-yyyy").format(new Date()));
-                                        totalPrice += Integer.parseInt(price);
-                                        textViewPrice.setText("k " + totalPrice);
-                                    }
-
-                                }
-                            }
-                        })
-                        .addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                // Task failed with an exception
-                                // ...
-                            }
-                        });
-
-            }
-        };
-
-        imageAnalysis.setAnalyzer(analyzer);
-
-        CameraX.bindToLifecycle((LifecycleOwner) this, imageAnalysis, preview);
-        //=================================
-
-    }
-
-    private void updateTransform(){
-        Matrix mx = new Matrix();
-        float w = textureView.getMeasuredWidth();
-        float h = textureView.getMeasuredHeight();
-
-        float cX = w / 2f;
-        float cY = h / 2f;
-
-        int rotationDgr;
-        int rotation = (int)textureView.getRotation();
-
-        switch(rotation){
-            case Surface.ROTATION_0:
-                rotationDgr = 0;
-                break;
-            case Surface.ROTATION_90:
-                rotationDgr = 90;
-                break;
-            case Surface.ROTATION_180:
-                rotationDgr = 180;
-                break;
-            case Surface.ROTATION_270:
-                rotationDgr = 270;
-                break;
-            default:
-                return;
-        }
-
-        mx.postRotate((float)rotationDgr, cX, cY);
-        textureView.setTransform(mx);
-    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 
         if(requestCode == REQUEST_CODE_PERMISSIONS){
             if(allPermissionsGranted()){
-                startCamera();
+                //startCamera();
             } else{
                 Toast.makeText(this, "Permissions not granted by the user.", Toast.LENGTH_SHORT).show();
                 finish();
@@ -389,21 +265,133 @@ public class Scanner extends AppCompatActivity {
 
             //update report
             String cashierUID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            List<List<String>> item = new ArrayList<List<String>>();
+            final List<List<String>> item = new ArrayList<List<String>>();
             for (int i = 0; i < productName.size(); i++) {
                 List singleItem = new ArrayList();
                 singleItem.add(productName.get(i));
                 singleItem.add(productPrice.get(i));
                 singleItem.add(date.get(i));
+                singleItem.add(timeStamp.get(i));
                 singleItem.add(cashierUID);
                 item.add(singleItem);
             }
 
-            referenceToUserReport.push().setValue(item).addOnCompleteListener(new OnCompleteListener<Void>() {
+            /**
+             * 1. Its possible that an update might fail as their might be no network coverage.
+             * Thus if a fail occurs store the update in a file.
+             * Then update at a later time when coverage is available or
+             * notify user to press a button to make the needed update.
+             * 2. Success might be called automatically after a fail thus,
+             * thus it might be needed to delete update entry from file if it exists in the file on every success
+             *
+             *
+             *
+             */
+
+
+            //ToDo:remove from file when Undo is done and check logic of code below
+            uuid=null; //key
+            try {
+                FileOutputStream fos = openFileOutput("ReportFailsKeys.txt", MODE_APPEND);
+                PrintWriter pw=new PrintWriter(fos);
+
+                uuid= UUID.randomUUID().toString();
+
+
+                pw.println(uuid);
+
+
+                FileOutputStream fos2 = openFileOutput(uuid+".txt", MODE_APPEND);
+                PrintWriter pw2=new PrintWriter(fos2);
+                for(List<String> singleItem:item){
+                    pw2.println(singleItem.get(0));//name
+                    pw2.println(singleItem.get(1));//price
+                    pw2.println(singleItem.get(2));//date
+                    pw2.println(singleItem.get(3));//timestamp
+                    pw2.println(singleItem.get(4));//cashier
+                }
+                pw.close();
+                pw2.close();
+
+                Toast.makeText(getApplicationContext(),"key saved on device",Toast.LENGTH_SHORT).show();
+
+            }
+            catch(Exception e){
+                Toast.makeText(getApplicationContext(),e.toString(),Toast.LENGTH_SHORT).show();
+            }
+
+
+            referenceToUserReport.child(uuid).setValue(item).addOnCompleteListener(new OnCompleteListener<Void>() {
                 @Override
                 public void onComplete(@NonNull Task<Void> task) {
-                    if(task.isSuccessful()){
 
+                    if(task.isSuccessful()){
+                        try {
+                            /*
+                             *read all report fails and put them in a list
+                             */
+                            Toast.makeText(getApplicationContext(),"file "+uuid,Toast.LENGTH_SHORT).show();
+                            File file=new File("/data/data/g.o.gotechpos/files/"+uuid+".txt");
+                            if(file.exists()) {
+                                file.delete();
+                                Toast.makeText(getApplicationContext(),"file deleted",Toast.LENGTH_SHORT).show();
+                            }
+                            /*FileInputStream fis = openFileInput(uuid+".txt");
+                            java.util.Scanner sc=new java.util.Scanner(fis);
+                            List<List<String>> list=new ArrayList<List<String>>();
+                            for (int i=0;sc.hasNextLine();i++){
+                                list.add(new ArrayList<String>(Arrays.asList(
+                                        sc.nextLine(),
+                                        sc.nextLine(),
+                                        sc.nextLine(),
+                                        sc.nextLine(),
+                                        sc.nextLine()
+                                )));
+                            }
+*/
+                            /*
+                             *delete entry from list which matches entry in item
+                             */
+                            /*for(List<String> l:list){
+                                if(item.contains(l)){
+                                    list.remove(list.indexOf(l));
+                                    Toast.makeText(getApplicationContext(),"removed "+l.get(0),Toast.LENGTH_SHORT).show();
+                                }
+                            }*/
+
+                            /*
+                             *write new list to file
+                             */
+                            /*FileOutputStream fos = openFileOutput(uuid+".txt", MODE_PRIVATE);
+                            PrintWriter p=new PrintWriter(fos);
+                            p.writeObject(list);
+                            oos.close();*/
+                            FileInputStream ff=openFileInput("ReportFailsKeys.txt");
+                            java.util.Scanner snr=new java.util.Scanner(ff);
+                            List<String> keys=new ArrayList<>();
+                            while(snr.hasNextLine()){
+                                keys.add(snr.nextLine());
+                            }
+                            if(keys.contains(uuid)) {
+                                keys.remove(uuid);
+                                Toast.makeText(getApplicationContext(),"key "+uuid,Toast.LENGTH_SHORT).show();
+
+                                FileOutputStream fos = openFileOutput("ReportFailsKeys.txt", MODE_PRIVATE);
+                                PrintWriter p = new PrintWriter(fos);
+                                for (String key : keys) {
+                                    p.println(key);
+                                }
+
+                                p.close();
+                                Toast.makeText(getApplicationContext(),"key deleted",Toast.LENGTH_SHORT).show();
+                            }
+
+
+
+                        }
+                        catch (Exception e){
+
+                        }
                     }
                     else{
 
@@ -416,24 +404,17 @@ public class Scanner extends AppCompatActivity {
         }
     }//calcChange()
 
-    /*CameraControl cameraControl = CameraX.getCameraControl(CameraX.LensFacing.BACK);
-    private void setUpTapToFocus() {
-        textureView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() != MotionEvent.ACTION_UP) {
-                *//* Original post returns false here, but in my experience this makes
-                onTouch not being triggered for ACTION_UP event *//*
-                    return true;
-                }
-                TextureViewMeteringPointFactory factory = new TextureViewMeteringPointFactory(textureView);
-                MeteringPoint point = factory.createPoint(event.getX(), event.getY());
-                FocusMeteringAction action = FocusMeteringAction.Builder.from(point).build();
-                cameraControl.startFocusAndMetering(action);
-                return true;
-            }
-        });
-    }*/
+
+    public void flashLight(View view){
+        if(view.getTag().equals("isOn")) {
+            barcodeView.setTorch(false);
+            view.setTag("isOff");
+        }
+        else if(view.getTag().equals("isOff")){
+            barcodeView.setTorch(true);
+            view.setTag("isOn");
+        }
+    }
 
 
     public void undo(View view){
@@ -463,17 +444,36 @@ public class Scanner extends AppCompatActivity {
                 textViewPrice.setText("k "+totalPrice);
             }
         }
+        else{
+            IntentResult intentResult=IntentIntegrator.parseActivityResult(requestCode,resultCode,intent);
+            if(intentResult!=null){
+                Toast.makeText(getApplicationContext(),intentResult.getContents(),Toast.LENGTH_LONG).show();
+            }
+
+            //scanIntegrator.initiateScan();
+        }
+
+    }//onActivityResult
+
+    @Override
+    protected void onResume () {
+        barcodeView.resume();
+        super.onResume();
 
     }
+
+
+    @Override
+    protected void onPause(){
+        super.onPause();
+        barcodeView.pause();
+    }
+
 
     @Override
     public void onDestroy(){
-        CameraX.unbindAll();
         super.onDestroy();
     }
 
-    //ToDo: stop reading frames when a Dialog is shown and also while we are doing work in onActivityResult
+
 }
-
-
-

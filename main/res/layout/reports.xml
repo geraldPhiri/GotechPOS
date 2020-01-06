@@ -17,6 +17,7 @@
         android:layout_height="match_parent">
 
         <LinearLayout
+            android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
             <TextView
@@ -27,6 +28,37 @@
                 android:textSize="19sp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
+            <com.github.mikephil.charting.charts.LineChart
+                android:visibility="gone"
+                android:id="@+id/chart1"
+                android:layout_width="match_parent"
+                android:layout_height="120sp"
+                android:layout_above="@+id/seekBar1" />
+
+            <SeekBar
+                android:visibility="gone"
+                android:id="@+id/seekBar2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentLeft="true"
+                android:layout_margin="8dp"
+                android:layout_marginRight="5dp"
+                android:max="150"
+                android:paddingBottom="12dp" />
+
+            <SeekBar
+                android:visibility="gone"
+                android:id="@+id/seekBar1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_above="@+id/seekBar2"
+                android:layout_margin="8dp"
+                android:layout_marginBottom="35dp"
+                android:layout_marginRight="5dp"
+                android:max="500"
+                android:paddingBottom="12dp" />
+
         </LinearLayout>
         <ScrollView
             android:layout_width="match_parent"

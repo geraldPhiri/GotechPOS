@@ -121,7 +121,7 @@ class MyAdapter extends RecyclerView.Adapter{
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int i) {
         String s = names.get(i);
         Holder vh = (Holder) holder;
-        vh.titleView.setText(names.get(i));
+        vh.titleView.setText(names.get(i)+"   "+"k"+prices.get(i));
         vh.data = s;
     }
 

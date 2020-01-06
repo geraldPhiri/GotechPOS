@@ -13,7 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.firebase.auth.FirebaseAuth;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -39,6 +39,9 @@ public class Stock extends AppCompatActivity {
 
     private List<String> productName=new ArrayList();
     private List<String> productCount=new ArrayList();
+    private List<String> productPrices=new ArrayList<>();
+    private List<String> productUnit=new ArrayList<>();
+
     private ListView listViewStock;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -57,9 +60,13 @@ public class Stock extends AppCompatActivity {
                 View convertView=layoutInflater.inflate(R.layout.stock_item,null,true);
                 TextView textViewName=convertView.findViewById(R.id.product_name);
                 TextView textViewCount=convertView.findViewById(R.id.product_count);
+                TextView textViewPrice=convertView.findViewById(R.id.product_price);
+                TextView textViewUnit=convertView.findViewById(R.id.product_unit);
 
                 textViewName.setText(sc2.nextLine());
                 textViewCount.setText(sc2.nextLine());
+                textViewPrice.setText("price: k"+sc2.nextLine());
+                textViewUnit.setText(sc2.nextLine());
 
                 linearLayout.addView(convertView);
             }
@@ -100,23 +107,41 @@ public class Stock extends AppCompatActivity {
                 ArrayList<String> item=dataSnapshot.getValue(new GenericTypeIndicator<ArrayList<String>>(){});
                 final String itemName=item.get(0);
                 final String itemCount=item.get(1);
+                final String itemPrice=item.get(2);
+
+                //try catch block to ensure app doesnt creash if old apps edit database
+                String itemUnit;
+                try {
+                    itemUnit = item.get(3);
+                }
+                catch(Exception e){
+                    itemUnit="";
+
+                }
                 productName.add(itemName);
                 productCount.add(itemCount);
+                productUnit.add(itemUnit);
+                productPrices.add(itemPrice);
 
                 LayoutInflater layoutInflater=(LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                View convertView=layoutInflater.inflate(R.layout.stock_item,null,true);
+                final View convertView=layoutInflater.inflate(R.layout.stock_item,null,true);
                 TextView textViewName=convertView.findViewById(R.id.product_name);
                 TextView textViewCount=convertView.findViewById(R.id.product_count);
+                TextView textViewPrice=convertView.findViewById(R.id.product_price);
+                TextView textViewUnit=convertView.findViewById(R.id.product_unit);
 
                 textViewName.setText(itemName);
                 textViewCount.setText(itemCount);
+                textViewPrice.setText("price: k"+itemPrice);
+                textViewUnit.setText(itemUnit);
 
                 try{
                     //write to file
                     if(pw!=null){
                         pw.println(itemName);
                         pw.println(itemCount);
-                        //pw.println(itemPrice);
+                        pw.println(itemPrice);
+                        pw.println(itemUnit);
                         //pw.println(barcode);
                     }
                 }
@@ -124,17 +149,38 @@ public class Stock extends AppCompatActivity {
 
                 }
 
+                final String i=itemUnit;
                 convertView.setTag(dataSnapshot.getKey());
                 convertView.findViewById(R.id.edit_button3).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        startActivity(new Intent(Stock.this,AddProduct.class).putExtra("barcode",convertView.getTag().toString()));
+                        startActivity(new Intent(Stock.this,AddProduct.class)
+                                .putExtra("barcode",convertView.getTag().toString())
+                                .putExtra("name",itemName)
+                                .putExtra("price",itemPrice)
+                                .putExtra("count",itemCount)
+                                .putExtra("unit",i)
+
+                        );
                     }
                 });
                 convertView.findViewById(R.id.delete_button).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        reference.child(convertView.getTag().toString()).setValue(null);
+                        reference.child(convertView.getTag().toString()).setValue(null).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                linearLayout.removeView(convertView);
+                                //ToDo:delete from file
+                                /*
+                                 *Read file contents as string.
+                                 *Replace substring representing item with ""(empty string)
+                                 *Save file
+                                 */
+                                
+
+                            }
+                        });
                     }
                 });
 

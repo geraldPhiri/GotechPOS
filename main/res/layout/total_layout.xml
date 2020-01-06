@@ -10,7 +10,7 @@ android:layout_height="match_parent">
     android:background="#FFF"
     android:layout_gravity="center"
     android:layout_width="match_parent"
-    android:layout_height="80sp">
+    android:layout_height="56sp">
 
     <LinearLayout
         android:background="#FFF"
@@ -19,7 +19,6 @@ android:layout_height="match_parent">
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
         <LinearLayout
-            android:layout_gravity="center"
             android:orientation="horizontal"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content">

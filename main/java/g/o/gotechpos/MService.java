@@ -21,36 +21,31 @@ public class MService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         //if(remoteMessage.toIntent().getExtras().getString("msg")!=null || remoteMessage.toIntent().getExtras().getString("group")!=null) {
-            Intent intent=null;
-            if(remoteMessage.toIntent().getExtras().getString("msg")!=null) {
-                intent = new Intent(this, MainActivity.class);
-            }
-            else{
-                intent = new Intent(this, MainActivity.class);//.putExtra("group_selected_by_user",remoteMessage.toIntent().getExtras().getString("group"));
-            }
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
-                    PendingIntent.FLAG_ONE_SHOT);
+        Intent intent=null;
+        intent = new Intent(this, MainActivity.class).putExtra("data",remoteMessage.toIntent().getExtras().getString("data"));
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
+                PendingIntent.FLAG_ONE_SHOT);
 
-            Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            NotificationCompat.Builder notificationBuilder =
-                    new NotificationCompat.Builder(this)
-                            .setSmallIcon(R.drawable.ic_launcher)
-                            .setContentTitle(remoteMessage.getNotification().getTitle())
-                            .setContentText(remoteMessage.getNotification().getBody())
-                            .setAutoCancel(true)
-                            .setSound(defaultSoundUri)
-                            .setContentIntent(pendingIntent);
+        Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        NotificationCompat.Builder notificationBuilder =
+                new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.drawable.ic_launcher)
+                        .setContentTitle(remoteMessage.getNotification().getTitle())
+                        .setContentText(remoteMessage.getNotification().getBody())
+                        .setAutoCancel(true)
+                        .setSound(defaultSoundUri)
+                        .setContentIntent(pendingIntent);
 
-            NotificationManager notificationManager =
-                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-            // Since android Oreo notification channel is needed.
+        // Since android Oreo notification channel is needed.
 
 
-            notificationManager.notify(0 /* ID of notification */, notificationBuilder.build());
+        notificationManager.notify(0 /* ID of notification */, notificationBuilder.build());
 
-            //startActivity(new Intent(this,Messages.class).putExtra("message",remoteMessage.getNotification().getBody()));
+        //startActivity(new Intent(this,Messages.class).putExtra("message",remoteMessage.getNotification().getBody()));
         //}
     }
 

@@ -3,16 +3,19 @@ package g.o.gotechpos;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.FileUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.gms.common.util.IOUtils;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -21,10 +24,12 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -109,7 +114,7 @@ public class Stock extends AppCompatActivity {
                 final String itemCount=item.get(1);
                 final String itemPrice=item.get(2);
 
-                //try catch block to ensure app doesnt creash if old apps edit database
+                //try catch block to ensure app doesn't crash if old apps edit database
                 String itemUnit;
                 try {
                     itemUnit = item.get(3);
@@ -170,14 +175,61 @@ public class Stock extends AppCompatActivity {
                         reference.child(convertView.getTag().toString()).setValue(null).addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
+                                //from view from layout
+                                int index=linearLayout.indexOfChild(convertView);
                                 linearLayout.removeView(convertView);
-                                //ToDo:delete from file
+
                                 /*
                                  *Read file contents as string.
                                  *Replace substring representing item with ""(empty string)
                                  *Save file
                                  */
-                                
+                                try {
+                                    List<List<String>> list=new ArrayList<>();
+                                    FileInputStream file = openFileInput("Stock.txt");
+                                    Scanner sc=new Scanner(file);
+                                    while(sc.hasNextLine()){
+                                        String sc1=sc.nextLine();
+                                        String sc2=sc.nextLine();
+                                        String sc3=sc.nextLine();
+                                        String sc4=sc.nextLine();
+                                        if(sc1.equals(convertView.findViewById(R.id.product_name)) &&
+                                                sc2.equals(convertView.findViewById(R.id.product_price)) &&
+                                                sc3.equals(convertView.findViewById(R.id.product_count)) /*&&
+                                                sc4.equals(convertView.findViewById(R.id.product_unit))*/ )
+                                        {
+                                            //do nothing
+                                        }
+                                        else {
+                                            list.add(new ArrayList<String>(Arrays.asList(
+                                                    sc1,
+                                                    sc2,
+                                                    sc3,
+                                                    sc4
+                                            )));
+                                        }
+                                    }
+                                    FileOutputStream fileOutputStream=openFileOutput("Stock.txt",MODE_PRIVATE);
+                                    fileOutputStream.close();
+                                    fileOutputStream=null;
+                                    fileOutputStream=openFileOutput("Stock.txt",MODE_APPEND);
+                                    PrintWriter pw=new PrintWriter(fileOutputStream);
+                                    for(List<String> item:list){
+                                        pw.println(item.get(0));
+                                        pw.println(item.get(1));
+                                        pw.println(item.get(2));
+                                        pw.println(item.get(3));
+                                    }
+                                    pw.close();
+                                    fileOutputStream.close();
+
+
+                                    sc.close();
+                                    file.close();
+                                }
+                                catch (Exception e){
+                                    Toast.makeText(getApplicationContext(),e.toString(),Toast.LENGTH_SHORT).show();
+                                }
 
                             }
                         });

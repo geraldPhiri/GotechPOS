@@ -22,7 +22,8 @@ public class MService extends FirebaseMessagingService {
     public void onMessageReceived(RemoteMessage remoteMessage) {
         //if(remoteMessage.toIntent().getExtras().getString("msg")!=null || remoteMessage.toIntent().getExtras().getString("group")!=null) {
         Intent intent=null;
-        intent = new Intent(this, MainActivity.class).putExtra("data",remoteMessage.toIntent().getExtras().getString("data"));
+        intent = new Intent(this, MainActivity.class);
+        intent.putExtra("d","a");
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
                 PendingIntent.FLAG_ONE_SHOT);
@@ -31,8 +32,8 @@ public class MService extends FirebaseMessagingService {
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this)
                         .setSmallIcon(R.drawable.ic_launcher)
-                        .setContentTitle(remoteMessage.getNotification().getTitle())
-                        .setContentText(remoteMessage.getNotification().getBody())
+                        .setContentTitle("Device prices need to be updated")
+                        .setContentText("Click to update")
                         .setAutoCancel(true)
                         .setSound(defaultSoundUri)
                         .setContentIntent(pendingIntent);
@@ -45,7 +46,7 @@ public class MService extends FirebaseMessagingService {
 
         notificationManager.notify(0 /* ID of notification */, notificationBuilder.build());
 
-        //startActivity(new Intent(this,Messages.class).putExtra("message",remoteMessage.getNotification().getBody()));
+        //startActivity(intent);
         //}
     }
 

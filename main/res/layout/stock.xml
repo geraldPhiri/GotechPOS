@@ -2,7 +2,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:fab="http://schemas.android.com/tools">
     <LinearLayout
         android:orientation="vertical"
         android:background="#fff"
@@ -20,9 +21,130 @@
                 android:textSize="20sp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
+            <HorizontalScrollView
+                android:scrollbars="none"
+                android:fillViewport="true"
+                android:measureAllChildren="false"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                >
+                <TextView
+                    android:text="Search By"
+                    android:textStyle="bold"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    android:layout_marginLeft="20sp"
+                    android:id="@+id/by_name"
+                    android:text="Name"
+                    android:onClick="searchBy"
+                    android:layout_width="wrap_content"
+                    android:tag="gray"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    android:layout_marginLeft="20sp"
+                    android:id="@+id/by_count"
+                    android:text="Count"
+                    android:onClick="searchBy"
+                    android:layout_width="wrap_content"
+                    android:tag="gray"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    android:layout_marginLeft="20sp"
+                    android:id="@+id/by_unit"
+                    android:text="Unit"
+                    android:onClick="searchBy"
+                    android:tag="gray"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    android:layout_marginLeft="20sp"
+                    android:id="@+id/by_price"
+                    android:text="Price"
+                    android:tag="gray"
+                    android:onClick="searchBy"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+
+                <TextView
+                    android:layout_marginLeft="30sp"
+                    android:text="Sort By"
+                    android:textStyle="bold"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    android:layout_marginLeft="20sp"
+                    android:id="@+id/sby_name"
+                    android:text="Name"
+                    android:onClick="sortBy"
+                    android:layout_width="wrap_content"
+                    android:tag="0"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    android:layout_marginLeft="20sp"
+                    android:id="@+id/sby_count"
+                    android:text="Count"
+                    android:onClick="sortBy"
+                    android:layout_weight="1"
+                    android:layout_width="0sp"
+                    android:tag="2"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    android:layout_marginLeft="20sp"
+                    android:id="@+id/sby_unit"
+                    android:text="Unit"
+                    android:onClick="sortBy"
+                    android:tag="3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    android:layout_marginLeft="20sp"
+                    android:layout_marginRight="20sp"
+                    android:id="@+id/sby_price"
+                    android:text="Price"
+                    android:tag="1"
+                    android:onClick="sortBy"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+            </LinearLayout>
+            </HorizontalScrollView>
+            <RelativeLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <ImageView
+                    android:layout_marginRight="10sp"
+                    android:layout_marginLeft="10sp"
+                    android:onClick="onSearch"
+                    android:id="@+id/search_b"
+                    android:layout_centerInParent="true"
+                    android:layout_alignParentRight="true"
+                    android:src="@drawable/ic_search_black"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    />
+                <EditText
+                    android:id="@+id/search"
+                    android:layout_toLeftOf="@+id/search_b"
+                    android:layout_gravity="start"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    />
+
+
+            </RelativeLayout>
 
         </LinearLayout>
-        <ScrollView
+        <com.melnykov.fab.ObservableScrollView
+            android:id="@+id/scroll_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             >
@@ -32,10 +154,10 @@
                 android:layout_height="match_parent"
                 android:orientation="vertical"
                 />
-        </ScrollView>
+        </com.melnykov.fab.ObservableScrollView>
     </LinearLayout>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <!--<com.google.android.material.floatingactionbutton.FloatingActionButton
         android:src="@drawable/ic_add"
         android:layout_marginRight="20sp"
         android:layout_marginBottom="20sp"
@@ -49,6 +171,23 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content">
 
-    </com.google.android.material.floatingactionbutton.FloatingActionButton>
+    </com.google.android.material.floatingactionbutton.FloatingActionButton>-->
+
+    <com.melnykov.fab.FloatingActionButton
+        android:id="@+id/fab"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:onClick="addToStock"
+        android:layout_marginRight="20sp"
+        android:layout_marginBottom="20sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@drawable/ic_add"
+        android:tint="#FFDF00"
+        app:rippleColor="#CCC"
+        android:elevation="20sp"
+        android:backgroundTint="#FFF"
+         />
 
 </RelativeLayout>

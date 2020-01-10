@@ -68,7 +68,7 @@ public class AddStock extends AppCompatActivity {
             Toast.makeText(getApplicationContext(),ex.toString(),Toast.LENGTH_LONG).show();
         }*/
 
-        reference.child(barcode).setValue(new ArrayList<String>(Arrays.asList(name,count,price,unit)));
+        reference.child(barcode).setValue(new ArrayList<String>(Arrays.asList(name,count,price,unit,"send notification")));
 
 
         finish();

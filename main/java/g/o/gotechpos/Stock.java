@@ -1,5 +1,6 @@
 package g.o.gotechpos;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -22,8 +23,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.android.gms.common.util.IOUtils;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -33,15 +35,12 @@ import com.google.firebase.database.GenericTypeIndicator;
 import com.melnykov.fab.FloatingActionButton;
 import com.melnykov.fab.ObservableScrollView;
 
-import org.w3c.dom.Text;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
@@ -52,9 +51,14 @@ public class Stock extends AppCompatActivity {
 
     LinearLayout linearLayout;
 
+    LinearLayout categoryLayout;
+
     FirebaseDatabase database;
-    DatabaseReference reference;
+    private DatabaseReference reference;
+    private DatabaseReference categoryRef;
+
     ChildEventListener childEventListener;
+    ChildEventListener categoryChildEventListener;
 
     List<StockItem> stockItems=new ArrayList<>();
     //private List<String> productName=new ArrayList();
@@ -62,17 +66,20 @@ public class Stock extends AppCompatActivity {
     //private List<String> productPrices=new ArrayList<>();
     //private List<String> productUnit=new ArrayList<>();
 
+    List<String> category=new ArrayList<>();
+
     //To help with SearchBY
     TextView searchByName,searchByCount,searchByUnit,searchByPrice;
 
     ObservableScrollView scrollView;
     FloatingActionButton floatingActionButton;
 
-    private ListView listViewStock;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.stock);
+
+        categoryLayout=findViewById(R.id.category_layout);
 
         scrollView=findViewById(R.id.scroll_view);
         floatingActionButton=findViewById(R.id.fab);
@@ -86,7 +93,35 @@ public class Stock extends AppCompatActivity {
         linearLayout=findViewById(R.id.listview_stock);
         editTextSearch=findViewById(R.id.search);
 
-        //load from device
+        //load categories from device
+        FileInputStream fis3=null;
+        Scanner sc3=null;
+        try {
+            LayoutInflater layoutInflater=(LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            fis3=openFileInput("Category.txt");
+            sc3=new java.util.Scanner(fis3);
+            while(sc3.hasNextLine()){
+                TextView textView=new TextView(Stock.this);
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                params.setMargins(0,0,30,0);
+                textView.setLayoutParams(params);
+                String name=sc3.nextLine();
+                textView.setText(name);
+
+                category.add(name);
+                categoryLayout.addView(textView);
+            }
+
+        }
+        catch (Exception exception){
+
+        }
+        finally {
+            fis3=null;
+            sc3=null;
+        }
+
+        //load stock from device
         FileInputStream fis2=null;
         Scanner sc2=null;
         try {
@@ -119,6 +154,76 @@ public class Stock extends AppCompatActivity {
 
         database=FirebaseDatabase.getInstance();
         reference=database.getReference("ProductionDB/Stock/");
+        categoryRef=database.getReference("ProductionDB/Category/");
+
+        categoryChildEventListener=new ChildEventListener() {
+            int count=0;
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                FileOutputStream fos=null;
+                PrintWriter pw=null;
+                try {
+                    if(count==0) {
+                        fos = openFileOutput("Category.txt", MODE_PRIVATE);
+                        fos.close();
+                        categoryLayout.removeAllViews();
+                        category.clear();
+                        ++count;
+                    }
+
+                    fos=openFileOutput("Category.txt",MODE_APPEND);
+                    pw=new PrintWriter(fos);
+                }
+                catch (Exception exception){
+                    fos=null;
+                    pw=null;
+                }
+                String name=dataSnapshot.getValue(String.class);
+                category.add(name);
+
+                //add to layout
+                TextView textView=new TextView(Stock.this);
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                params.setMargins(0,0,30,0);
+                textView.setLayoutParams(params);
+                textView.setText(name);
+                categoryLayout.addView(textView);
+
+
+                try{
+                    //write to file
+                    if(pw!=null){
+                        pw.println(name);
+                    }
+                    pw.close();
+                    fos.close();
+                }
+                catch (Exception exception){
+
+                }
+
+            }
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        };
 
         childEventListener=new ChildEventListener() {
             int count=0;
@@ -302,6 +407,7 @@ public class Stock extends AppCompatActivity {
 
             }
         };
+        categoryRef.addChildEventListener(categoryChildEventListener);
         reference.addChildEventListener(childEventListener);
 
 
@@ -311,6 +417,8 @@ public class Stock extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         reference.removeEventListener(childEventListener);
+        categoryRef.removeEventListener(categoryChildEventListener);
+
         super.onDestroy();
     }
 
@@ -417,6 +525,34 @@ public class Stock extends AppCompatActivity {
         }
 
 
+    }
+
+    public void addCategory(View view){
+        startActivityForResult(new Intent(Stock.this,AddCategory.class),1);
+    }
+
+
+    //upload category to firebase database
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode==1){
+            if(resultCode== Activity.RESULT_OK){
+                String name=data.getStringExtra("name");
+                categoryRef.push().setValue(name).addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if(task.isSuccessful()){
+                            Toast.makeText(getApplicationContext(),"category uploaded",Toast.LENGTH_SHORT).show();
+                        }
+                        else {
+
+                        }
+                    }
+                });
+
+            }
+        }
 
     }
 }

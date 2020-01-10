@@ -1,5 +1,15 @@
 package g.o.gotechpos;
 
+//Deadline 13 jan
+//ToDo:indicator to show device stock needs updating
+//Todo:UI then categories
+
+//Deadline 27 jan
+//ToDo:reports order by employee
+//Todo:Profits
+//Todo:Tax
+
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,7 +24,6 @@ import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.github.lzyzsd.circleprogress.CircleProgress;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.ChildEventListener;
@@ -245,7 +254,7 @@ public class MainActivity extends AppCompatActivity {
 
         Bundle bundle=getIntent().getExtras();
         if(bundle!=null){//if notification update file on device
-            Toast.makeText(getApplicationContext(),"bundle",Toast.LENGTH_SHORT).show();
+            //Toast.makeText(getApplicationContext(),"bundle",Toast.LENGTH_SHORT).show();
             reference.addValueEventListener(valueEventListener);
 
         }

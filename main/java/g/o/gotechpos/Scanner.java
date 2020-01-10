@@ -80,7 +80,10 @@ public class Scanner extends AppCompatActivity {
     private List<String> date=new ArrayList<String>();
 
     private List<String> timeStamp=new ArrayList<String>();
+
     private float totalPrice=0F;
+
+
     private final int REQUEST_CODE_PERMISSIONS = 101;
     private final String[] REQUIRED_PERMISSIONS = new String[]{"android.permission.CAMERA", "android.permission.WRITE_EXTERNAL_STORAGE"};
     TextureView textureView;
@@ -225,7 +228,6 @@ public class Scanner extends AppCompatActivity {
                             @NonNull
                             @Override
                             public Transaction.Result doTransaction(@NonNull MutableData mutableData) {
-                                //ToDo:write logic for fail to update stock
                                 String count = mutableData.getValue(String.class);
                                 mutableData.setValue(Integer.parseInt(count) - 1 + "");
                                 return Transaction.success(mutableData);
@@ -289,7 +291,7 @@ public class Scanner extends AppCompatActivity {
              */
 
 
-            //ToDo:remove from file when Undo is done and check logic of code below
+            //ToDo:check logic of code below
             uuid=null; //key
             try {
                 FileOutputStream fos = openFileOutput("ReportFailsKeys.txt", MODE_APPEND);
@@ -398,6 +400,17 @@ public class Scanner extends AppCompatActivity {
                     }
                 }
             });
+
+            //clear current state
+            textViewPrice.setText("k 0");
+            textViewCustomersCash.setText("");
+            productName.clear();
+            productPrice.clear();
+            date.clear();
+            timeStamp.clear();
+            totalPrice=0F;
+
+
         }
         else{
             Toast.makeText(getApplicationContext(),"Make sure to scan atleast one product and to enter cash recieved ",Toast.LENGTH_LONG).show();

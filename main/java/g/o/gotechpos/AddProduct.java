@@ -65,8 +65,9 @@ public class AddProduct extends AppCompatActivity {
         reference.child(barcode).setValue(new ArrayList<String>(Arrays.asList(
                 editTextName.getText().toString(),
                 editTextCount.getText().toString(),
-                editTextPrice.getText().toString())),
-                editTextUnit.getText().toString()+" "+spinner.getSelectedItem().toString()
+                editTextPrice.getText().toString(),
+                editTextUnit.getText().toString()+" "+spinner.getSelectedItem().toString(),
+                "send notification"))
         ).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {

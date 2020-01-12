@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+<androidx.cardview.widget.CardView
     app:elevation="10sp"
     style="@style/Theme.AppCompat.Light.Dialog"
     android:layout_gravity="center"
@@ -23,6 +26,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:singleLine="true"/>
+    <Space
+        android:layout_width="wrap_content"
+        android:layout_height="10sp"/>
+    <TextView
+        android:text="Category"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <AutoCompleteTextView
+        android:id="@+id/categories"
+        android:completionThreshold="1"
+        android:singleLine="true"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
     <Space
         android:layout_width="wrap_content"
         android:layout_height="10sp"/>
@@ -93,3 +110,4 @@
 
   </LinearLayout>
 </androidx.cardview.widget.CardView>
+</ScrollView>

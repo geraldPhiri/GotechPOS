@@ -4,23 +4,23 @@
     android:layout_height="290sp"
     android:background="#FFF"
     >
-  <androidx.recyclerview.widget.RecyclerView
-      android:layout_above="@+id/button"
-      android:id="@+id/undo_list"
-      android:layout_width="match_parent"
-      android:layout_height="match_parent">
+    <androidx.recyclerview.widget.RecyclerView
+        android:layout_above="@+id/button"
+        android:id="@+id/undo_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
 
-  </androidx.recyclerview.widget.RecyclerView>
-  <Button
-      android:id="@+id/button"
-      android:text="Confirm"
-      android:onClick="onConfirm"
-      android:layout_centerHorizontal="true"
-      android:layout_alignParentBottom="true"
-      android:background="#00AAFF"
-      android:layout_width="wrap_content"
-      android:layout_marginBottom="10sp"
-      android:layout_height="wrap_content"/>
+    </androidx.recyclerview.widget.RecyclerView>
+    <Button
+        android:id="@+id/button"
+        android:text="Confirm"
+        android:onClick="onConfirm"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:background="#00AAFF"
+        android:layout_width="wrap_content"
+        android:layout_marginBottom="10sp"
+        android:layout_height="wrap_content"/>
 
 </RelativeLayout>

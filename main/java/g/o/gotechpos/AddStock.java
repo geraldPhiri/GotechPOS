@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
@@ -18,10 +19,13 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class AddStock extends AppCompatActivity {
+    AutoCompleteTextView autoCompleteTextView;
     String[] units={"mL","L","g","Kg"};
 
+    List<String> categories;
     EditText editTextName,editTextCount,editTextPrice,editTextBarcode,editTextUnit;
 
     FirebaseDatabase database;
@@ -33,6 +37,14 @@ public class AddStock extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.add_stock);
+
+
+        Intent intent=getIntent();
+        categories=(List<String>) intent.getSerializableExtra("category");
+
+        autoCompleteTextView=findViewById(R.id.categories);
+        autoCompleteTextView.setAdapter(new ArrayAdapter<String>(AddStock.this,android.R.layout.simple_list_item_1,categories));
+
 
         editTextName=findViewById(R.id.product_name);
         editTextPrice=findViewById(R.id.product_price);
@@ -56,6 +68,7 @@ public class AddStock extends AppCompatActivity {
         String price=editTextPrice.getText().toString();
         String barcode=editTextBarcode.getText().toString();
         String unit=editTextUnit.getText().toString()+" "+spinner.getSelectedItem().toString();
+        String category=autoCompleteTextView.getText().toString();
 
         /*try {
             FileOutputStream fos = openFileOutput(getIntent().getStringExtra("barcode") + ".txt", MODE_PRIVATE);
@@ -68,7 +81,7 @@ public class AddStock extends AppCompatActivity {
             Toast.makeText(getApplicationContext(),ex.toString(),Toast.LENGTH_LONG).show();
         }*/
 
-        reference.child(barcode).setValue(new ArrayList<String>(Arrays.asList(name,count,price,unit,"send notification")));
+        reference.child(barcode).setValue(new ArrayList<String>(Arrays.asList(name,count,price,unit,category)));
 
 
         finish();

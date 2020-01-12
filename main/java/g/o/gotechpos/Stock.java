@@ -39,6 +39,7 @@ import com.melnykov.fab.ObservableScrollView;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,6 +48,8 @@ import java.util.Scanner;
 
 
 public class Stock extends AppCompatActivity {
+    List<String> highLightedCategories=new ArrayList<>();
+
     EditText editTextSearch;
 
     LinearLayout linearLayout;
@@ -178,7 +181,7 @@ public class Stock extends AppCompatActivity {
                     fos=null;
                     pw=null;
                 }
-                String name=dataSnapshot.getValue(String.class);
+                final String name=dataSnapshot.getValue(String.class);
                 category.add(name);
 
                 //add to layout
@@ -187,6 +190,62 @@ public class Stock extends AppCompatActivity {
                 params.setMargins(0,0,30,0);
                 textView.setLayoutParams(params);
                 textView.setText(name);
+                textView.setTag("gray");
+                textView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        TextView searchByTextView=(TextView)v;
+                        if(searchByTextView.getTag().toString().equals("gray")){
+                            searchByTextView.setTextColor(Color.parseColor("#000000"));
+                            searchByTextView.setTag("black");
+                            searchByTextView.setTypeface(Typeface.DEFAULT_BOLD);
+                            highLightedCategories.add(name);
+
+                        }
+                        else if(searchByTextView.getTag().toString().equals("black")) {
+                            searchByTextView.setTextColor(Color.parseColor("#888888"));
+                            searchByTextView.setTag("gray");
+                            searchByTextView.setTypeface(Typeface.DEFAULT);
+                            highLightedCategories.remove(name);
+
+                        }
+
+                        LayoutInflater layoutInflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                        linearLayout.removeAllViews();
+                        if(!highLightedCategories.isEmpty()) {
+                            for (StockItem stockItem : stockItems) {
+                                if (highLightedCategories.contains(stockItem.category)) {
+                                    final View convertView = layoutInflater.inflate(R.layout.stock_item, null, true);
+                                    TextView textViewName = convertView.findViewById(R.id.product_name);
+                                    TextView textViewCount = convertView.findViewById(R.id.product_count);
+                                    TextView textViewPrice = convertView.findViewById(R.id.product_price);
+                                    TextView textViewUnit = convertView.findViewById(R.id.product_unit);
+
+                                    textViewName.setText(stockItem.name);
+                                    textViewCount.setText(stockItem.count);
+                                    textViewPrice.setText("k" + stockItem.price);
+                                    textViewUnit.setText(stockItem.unit);
+                                    linearLayout.addView(convertView);
+                                }
+                            }
+                        }
+                        else {
+                            for (StockItem stockItem : stockItems) {
+                                    final View convertView = layoutInflater.inflate(R.layout.stock_item, null, true);
+                                    TextView textViewName = convertView.findViewById(R.id.product_name);
+                                    TextView textViewCount = convertView.findViewById(R.id.product_count);
+                                    TextView textViewPrice = convertView.findViewById(R.id.product_price);
+                                    TextView textViewUnit = convertView.findViewById(R.id.product_unit);
+
+                                    textViewName.setText(stockItem.name);
+                                    textViewCount.setText(stockItem.count);
+                                    textViewPrice.setText("k" + stockItem.price);
+                                    textViewUnit.setText(stockItem.unit);
+                                    linearLayout.addView(convertView);
+                            }
+                        }
+                    }
+                });
                 categoryLayout.addView(textView);
 
 
@@ -252,15 +311,16 @@ public class Stock extends AppCompatActivity {
                 final String itemPrice=item.get(2);
 
                 //try catch block to ensure app doesn't crash if old apps edit database
-                String itemUnit;
+                String itemUnit="";
+                String itemCategory="";
                 try {
-                    itemUnit = item.get(3);
+                    itemUnit=item.get(3);
+                    itemCategory=item.get(4);
                 }
                 catch(Exception e){
-                    itemUnit="";
 
                 }
-                stockItems.add(new StockItem(itemName,itemCount,itemUnit,itemPrice));
+                stockItems.add(new StockItem(itemName,itemCount,itemUnit,itemPrice,itemCategory));
                 /*productName.add(itemName);
                 productCount.add(itemCount);
                 productUnit.add(itemUnit);
@@ -303,6 +363,7 @@ public class Stock extends AppCompatActivity {
                                 .putExtra("price",itemPrice)
                                 .putExtra("count",itemCount)
                                 .putExtra("unit",i)
+                                .putExtra("category",(Serializable)category)
 
                         );
                     }
@@ -424,14 +485,16 @@ public class Stock extends AppCompatActivity {
 
 
     public void addToStock(View view){
-        startActivity(new Intent(this,AddStock.class));
+        Intent intent=new Intent(this,AddStock.class);
+        intent.putExtra("category",(Serializable) category);
+        startActivity(intent);
     }
 
 
 
     //set sortBy field and carryout highlight operation
     public  void sortBy(View view){
-        List<Integer> ids=new ArrayList<>(Arrays.asList(R.id.sby_name,R.id.sby_count,R.id.sby_unit,R.id.sby_price));
+        List<Integer> ids=new ArrayList<>(Arrays.asList(R.id.sby_category,R.id.sby_name,R.id.sby_count,R.id.sby_unit,R.id.sby_price));
         TextView textView=(TextView)view;
         textView.setTextColor(Color.parseColor("#000000"));
         textView.setTypeface(Typeface.DEFAULT_BOLD);
@@ -460,7 +523,19 @@ public class Stock extends AppCompatActivity {
 
         LayoutInflater layoutInflater=(LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         linearLayout.removeAllViews();
+
+        String currentCategory="";
+
+
         for(StockItem stockItem:list){
+            if(!currentCategory.equals(stockItem.category)){
+                //testview to use to indicate categories
+                TextView textView=new TextView(Stock.this);
+                textView.setText(stockItem.category);
+                linearLayout.addView(textView);
+                currentCategory=stockItem.category;
+            }
+
             View convertView=layoutInflater.inflate(R.layout.stock_item,null,true);
             TextView textViewName=convertView.findViewById(R.id.product_name);
             TextView textViewCount=convertView.findViewById(R.id.product_count);
@@ -565,6 +640,7 @@ class StockItem implements Comparable<StockItem>{
     static final int SORTBYPRICE=1;
     static final int SORTBYCOUNT=2;
     static final int SORTBYUNIT=3;
+    static  final int SORTBYCATEGORY=4;
 
     static int sortBy=SORTBYNAME;//default sortBY
 
@@ -572,12 +648,14 @@ class StockItem implements Comparable<StockItem>{
     String count;
     String unit;
     String price;
+    String category;
 
-    public StockItem(String name, String count, String unit, String price){
+    public StockItem(String name, String count, String unit, String price, String category){
         this.name=name;
         this.count=count;
         this.unit=unit;
         this.price=price;
+        this.category=category;
     }
 
     @Override
@@ -585,15 +663,25 @@ class StockItem implements Comparable<StockItem>{
         List<String> list1=new ArrayList(Arrays.asList(name,price,count,unit));
         List<String> list2=new ArrayList(Arrays.asList(o.name,o.price,o.count,o.unit));
 
-        //move to sortby item to front of arrays
-        String string1=list1.get(sortBy);
-        String string2=list2.get(sortBy);
+        if(sortBy==SORTBYCATEGORY){
+            list1.add(0,this.category);
+            list2.add(0,o.category);
+        }
+        else{
+            //move to sortby item to front of arrays
+            String string1=list1.get(sortBy);
+            String string2=list2.get(sortBy);
 
-        list1.remove(sortBy);
-        list2.remove(sortBy);
+            list1.remove(sortBy);
+            list2.remove(sortBy);
 
-        list1.add(0,string1);
-        list2.add(0,string2);
+            list1.add(0,string1);
+            list2.add(0,string2);
+
+            list1.add(0,this.category);
+            list2.add(0,o.category);
+        }
+
 
         //compare
         for(int i=0;i<list1.size();i++){
@@ -617,9 +705,9 @@ class StockItem implements Comparable<StockItem>{
         return 0;
     }
 
-    public boolean contains(String string){
+    /*public boolean contains(String string){
         return (name.contains(string) || count.contains(string) || unit.contains(string)||price.contains(string));
-    }
+    }*/
 
     /**
      * @param string is String to search for and highlight in StockItem

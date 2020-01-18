@@ -285,6 +285,7 @@ public class Stock extends AppCompatActivity {
                                     TextView textViewPrice = convertView.findViewById(R.id.product_price);
                                     TextView textViewUnit = convertView.findViewById(R.id.product_unit);
 
+
                                     textViewName.setText(stockItem.name);
                                     textViewCount.setText(stockItem.count);
                                     textViewPrice.setText("k" + stockItem.price);
@@ -451,6 +452,8 @@ public class Stock extends AppCompatActivity {
                 final String costPricesCopy=costPrices;
 
                 final String i=itemUnit;
+                LinearLayout ll=convertView.findViewById(R.id.ll);
+                ll.setTag(dataSnapshot.getKey());
                 convertView.setTag(dataSnapshot.getKey());
                 convertView.findViewById(R.id.edit_button3).setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -814,7 +817,9 @@ public class Stock extends AppCompatActivity {
     }
 
     public void miniAddProduct(View view){
-        startActivity(new Intent(Stock.this,MiniAddActivity.class).putExtra("barcode",));
+        if(view.getTag()!=null) {
+            startActivity(new Intent(Stock.this, MiniAddActivity.class).putExtra("key", view.getTag().toString()));
+        }
     }
 
 }

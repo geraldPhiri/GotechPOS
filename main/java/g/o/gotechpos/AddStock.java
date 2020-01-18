@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class AddStock extends AppCompatActivity {
-    String costPrice="---";
+    String costPrice="";
     AutoCompleteTextView autoCompleteTextView;
     String[] units={"mL","L","g","Kg"};
 
@@ -87,7 +87,9 @@ public class AddStock extends AppCompatActivity {
             Toast.makeText(getApplicationContext(),ex.toString(),Toast.LENGTH_LONG).show();
         }*/
 
-        reference.child(barcode).setValue(new ArrayList<String>(Arrays.asList(name,count,price,unit,category,"",UUID.randomUUID().toString(), costPrice)));
+        reference.child(barcode)
+                .setValue(new ArrayList<String>(
+                        Arrays.asList(name,count,price,unit,category,"",UUID.randomUUID().toString(), costPrice)));
 
 
         finish();

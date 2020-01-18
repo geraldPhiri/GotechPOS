@@ -11,8 +11,8 @@
         android:id="@+id/fragmentg"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-
-        >
+        app:zxing_framing_rect_width="250dp"
+        app:zxing_framing_rect_height="100dp">
 
     </com.journeyapps.barcodescanner.BarcodeView>
 

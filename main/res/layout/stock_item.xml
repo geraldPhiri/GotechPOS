@@ -1,93 +1,156 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
 <androidx.cardview.widget.CardView
     android:padding="20sp"
-    android:layout_margin="5sp"
-    app:cardCornerRadius="30sp"
+    android:layout_margin="10sp"
+    app:cardCornerRadius="20sp"
     android:elevation="10sp"
     android:background="#FFF"
     android:layout_gravity="center"
     android:layout_width="match_parent"
-    android:layout_height="120sp">
+    android:layout_height="140sp">
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:elevation="20sp"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentTop="true"
+            android:id="@+id/product_picture"
+            android:src="@drawable/ic_add"
+            android:layout_width="70sp"
+            android:layout_centerVertical="true"
+            android:layout_height="match_parent"
+            android:onClick="setPhoto"
+            />
 
+    <LinearLayout
+        android:layout_toRightOf="@+id/product_picture"
+        android:orientation="horizontal"
+        android:weightSum="3"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        >
     <LinearLayout
         android:padding="10sp"
         android:background="#FFF"
-        android:layout_gravity="center_vertical"
         android:orientation="vertical"
-        android:layout_width="match_parent"
+        android:layout_width="0sp"
+        android:layout_weight="2"
         android:layout_height="wrap_content">
-        <LinearLayout
-            android:layout_gravity="center_vertical"
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+        <TextView
+            android:text="Vaseline Lotion"
+            android:id="@+id/product_name"
+            android:textColor="#000"
+            android:layout_alignParentLeft="true"
+            android:layout_marginLeft="10sp"
+            android:layout_centerVertical="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+        <TextView
+            android:textStyle="bold"
+            android:text="k25"
+            android:id="@+id/product_price"
+            android:layout_marginLeft="10sp"
+            android:textSize="25sp"
+            android:textColor="#000"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
 
-            <TextView
-                android:textStyle="bold"
-                android:id="@+id/product_name"
-                android:textColor="#000"
-                android:layout_alignParentLeft="true"
-                android:text=" "
-                android:layout_marginLeft="10sp"
-                android:layout_centerVertical="true"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:orientation="horizontal">
+
+
             <TextView
                 android:id="@+id/currency"
-                android:textColor="#000"
-                android:textStyle="bold"
-                android:layout_toRightOf="@+id/product_name"
-                android:layout_centerVertical="true"
-                android:text="x"
-                android:layout_marginLeft="30sp"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="10sp"
+                android:layout_toRightOf="@+id/product_name"
+                android:text="x"
+                android:textColor="#888"
+                 />
+
             <TextView
-                android:textStyle="bold"
-                android:layout_toRightOf="@+id/currency"
                 android:id="@+id/product_count"
-                android:textColor="#000"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_centerVertical="true"
                 android:layout_marginLeft="1sp"
+                android:layout_toRightOf="@+id/currency"
+                android:text="97"
+                android:textColor="#888"
+                 />
+
+            <LinearLayout
+                android:id="@+id/ll"
+                android:onClick="miniAddProduct"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content">
+            <TextView
+                android:id="@+id/currency2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="75sp"
+                android:layout_toRightOf="@+id/product_count"
+                android:text="x"
+                android:textColor="#888"
+                />
+
+            <TextView
+                android:id="@+id/product_count2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="1sp"
+                android:layout_toRightOf="@+id/currency"
+                android:text="0"
+                android:textColor="#888"
+                />
+            </LinearLayout>
 
         </LinearLayout>
-        <LinearLayout
+        <!--<LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-            <TextView
+           &lt;!&ndash; <TextView
                 android:text="price: "
                 android:layout_marginLeft="10sp"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
-            <!--<TextView
+                android:layout_height="wrap_content"/>&ndash;&gt;
+            &lt;!&ndash;<TextView
                 android:id="@+id/currency_choice"
                 android:text="k"
                 android:layout_marginLeft="10sp"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>-->
-            <TextView
-                android:id="@+id/product_price"
-                android:layout_marginLeft="10sp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
-        </LinearLayout>
+                android:layout_height="wrap_content"/>&ndash;&gt;
+
+        </LinearLayout>-->
 
         <TextView
             android:id="@+id/product_unit"
             android:layout_marginLeft="10sp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
+
+
+    </LinearLayout>
+
+    </LinearLayout>
+
         <RelativeLayout
+            android:layout_alignParentBottom="true"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-
             <ImageView
                 android:id="@+id/delete_button"
                 android:layout_alignParentRight="true"
@@ -105,11 +168,10 @@
                 android:layout_centerVertical="true"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
-
         </RelativeLayout>
 
 
-    </LinearLayout>
-
+    </RelativeLayout>
 </androidx.cardview.widget.CardView>
-</LinearLayout>
+
+</RelativeLayout>

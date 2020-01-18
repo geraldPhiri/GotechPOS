@@ -4,11 +4,13 @@
     android:layout_height="match_parent"
     android:background="#fff"
     >
+
     <com.vincent.bottomnavigationbar.BottomNavigationBar
         android:layout_alignParentBottom="true"
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
+
     <LinearLayout
         android:layout_above="@+id/bottom_nav"
         android:orientation="vertical"
@@ -72,6 +74,11 @@
                 />
         </ScrollView>
     </LinearLayout>
+    <View
+        android:layout_above="@+id/bottom_nav"
+        android:background="#000"
+        android:layout_width="match_parent"
+        android:layout_height="2sp"/>
 
 
 </RelativeLayout>

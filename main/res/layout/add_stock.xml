@@ -45,7 +45,7 @@
             android:layout_width="wrap_content"
             android:layout_height="10sp"/>
         <TextView
-            android:text="Price"
+            android:text="Selling Price"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
         <Space
@@ -59,6 +59,23 @@
         <Space
             android:layout_width="wrap_content"
             android:layout_height="10sp"/>
+
+        <TextView
+            android:text="Cost Price"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+        <Space
+            android:layout_width="wrap_content"
+            android:layout_height="10sp"/>
+        <EditText
+            android:id="@+id/product_cost_price"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:singleLine="true"/>
+        <Space
+            android:layout_width="wrap_content"
+            android:layout_height="10sp"/>
+
         <TextView
             android:text="Number of product"
             android:layout_width="match_parent"

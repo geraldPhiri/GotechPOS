@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+    <androidx.cardview.widget.CardView
+        app:elevation="10sp"
+        style="@style/Theme.AppCompat.Light.Dialog"
+        android:layout_gravity="center"
+        app:cardCornerRadius="14dp"
+        android:layout_width="260sp"
+        android:layout_height="504sp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#fff"
+            android:orientation="vertical"
+            android:layout_margin="26sp"
+            >
+
+            <TextView
+                android:text="Cost Price"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+            <Space
+                android:layout_width="wrap_content"
+                android:layout_height="10sp"/>
+            <EditText
+                android:id="@+id/product_cost_price"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"/>
+            <Space
+                android:layout_width="wrap_content"
+                android:layout_height="10sp"/>
+
+            <TextView
+                android:text="Count"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+            <Space
+                android:layout_width="wrap_content"
+                android:layout_height="10sp"/>
+            <EditText
+                android:id="@+id/product_count"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"/>
+
+            <Space
+                android:layout_width="wrap_content"
+                android:layout_height="10sp"/>
+            <Button
+                android:text="submit"
+                android:onClick="onSubmit"
+                android:background="#00AAFF"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+</ScrollView>

@@ -25,6 +25,7 @@ import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.request.target.Target;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -37,6 +38,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.io.File;
@@ -55,6 +57,9 @@ import java.util.Scanner;
  * @author Gerald Phiri
  */
 public class Group extends AppCompatActivity {
+    String mainuri;
+    String username;
+
     String startAtDate=new SimpleDateFormat("dd/MM/yyyy HH:mm:ss:SSS").
             format(new Date());
     String key=null;
@@ -62,15 +67,70 @@ public class Group extends AppCompatActivity {
     String selectedGroup=null;
     LinearLayout relativeLayout;
     FirebaseDatabase database;
-    DatabaseReference reference;
+    DatabaseReference reference,referenceToName,referenceToUri;
     ChildEventListener childEventListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.group);
-        relativeLayout=findViewById(R.id.rLayout);
+
         database=FirebaseDatabase.getInstance();
+
+        referenceToName=database.getReference("ProductionDB/Users/"+FirebaseAuth.getInstance().getCurrentUser().getUid()+"/Name");
+        referenceToUri=database.getReference("ProductionDB/Users/"+FirebaseAuth.getInstance().getCurrentUser().getUid()+"/Uri");
+
+        referenceToUri.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                String photoUrl = dataSnapshot.getValue(String.class);
+                if (photoUrl != null) {
+                    mainuri=photoUrl;
+                }
+                //save uri to device
+                try {
+                    FileOutputStream file = openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid() + "Uri", MODE_PRIVATE);
+                    PrintWriter pw=new PrintWriter(file);
+                    pw.println(photoUrl);
+                    pw.close();
+                }
+                catch (Exception exception){
+
+                }
+                referenceToName.removeEventListener(this);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+
+        referenceToName.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                username=dataSnapshot.getValue(String.class);
+                //save name to device
+                try {
+                    FileOutputStream file = openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid() + "Name", MODE_PRIVATE);
+                    PrintWriter pw=new PrintWriter(file);
+                    pw.println(dataSnapshot.getValue(String.class));
+                    pw.close();
+                }
+                catch (Exception exception){
+
+                }
+                referenceToName.removeEventListener(this);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+        relativeLayout=findViewById(R.id.rLayout);
         selectedGroup=getIntent().getStringExtra("group_selected_by_user");
         reference=database.getReference("ProductionDB/GroupPosts/"+selectedGroup); //reference posts in database based on group selected by used
 
@@ -94,12 +154,12 @@ public class Group extends AppCompatActivity {
 
                 ImageView poster=convertView.findViewById(R.id.poster_image);
                 TextView tname=convertView.findViewById(R.id.name);
-                TextView tdate=convertView.findViewById(R.id.date);
-                TextView tpost=convertView.findViewById(R.id.post);
+                TextView tdate=convertView.findViewById(R.id.address);
+                TextView tpost=convertView.findViewById(R.id.phone);
                 try {
                     Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/" + uid + ".png"))
                             .diskCacheStrategy(DiskCacheStrategy.NONE)
-                            .skipMemoryCache(true).into(poster);
+                            .skipMemoryCache(true).apply(new RequestOptions().circleCrop()).into(poster);
                 }
                 catch(Exception exception){
 
@@ -195,11 +255,11 @@ public class Group extends AppCompatActivity {
                         }
                         return false;
                     }
-                }).into(poster);
+                }).apply(new RequestOptions().circleCrop()).into(poster);
 
                 TextView tname=convertView.findViewById(R.id.name);
-                TextView tdate=convertView.findViewById(R.id.date);
-                TextView tpost=convertView.findViewById(R.id.post);
+                TextView tdate=convertView.findViewById(R.id.address);
+                TextView tpost=convertView.findViewById(R.id.phone);
                 tname.setText(name);
                 tdate.setText(date);
                 tpost.setText(post);
@@ -359,10 +419,10 @@ public class Group extends AppCompatActivity {
             String post = editText.getText().toString().trim();
             if (!post.isEmpty()) {
                 //TO-DO:research on how getDisplayName works to make user your not making people use alot of data, bundles
-                Uri photoUrl = user.getPhotoUrl();
+                String photoUrl = mainuri;
                 if (photoUrl != null) {
-                    reference.push().setValue(Arrays.asList(user.getUid(), user.getDisplayName(), post,
-                            new SimpleDateFormat("dd/MM/yyyy HH:mm:ss:SSS").format(new Date()), photoUrl.toString()));
+                    reference.push().setValue(Arrays.asList(user.getUid(), username, post,
+                            new SimpleDateFormat("dd/MM/yyyy HH:mm:ss:SSS").format(new Date()), photoUrl));
                     editText.setText("");
                 } else {
                     Toast.makeText(getApplicationContext(), "upload profile picture", Toast.LENGTH_SHORT).show();

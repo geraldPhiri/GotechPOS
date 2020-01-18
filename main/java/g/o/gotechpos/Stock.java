@@ -3,8 +3,11 @@ package g.o.gotechpos;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.FileUtils;
 import android.text.SpannableString;
@@ -13,6 +16,7 @@ import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ScrollView;
@@ -23,21 +27,35 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.melnykov.fab.FloatingActionButton;
 import com.melnykov.fab.ObservableScrollView;
 
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -45,9 +63,15 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+import java.util.UUID;
 
 
 public class Stock extends AppCompatActivity {
+    private String clickedImageTag;
+
+    private StorageReference sr;
+    private FirebaseStorage storage;
+
     List<String> highLightedCategories=new ArrayList<>();
 
     EditText editTextSearch;
@@ -81,6 +105,8 @@ public class Stock extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.stock);
+
+        storage= FirebaseStorage.getInstance();
 
         categoryLayout=findViewById(R.id.category_layout);
 
@@ -124,6 +150,8 @@ public class Stock extends AppCompatActivity {
             sc3=null;
         }
 
+
+
         //load stock from device
         FileInputStream fis2=null;
         Scanner sc2=null;
@@ -133,6 +161,17 @@ public class Stock extends AppCompatActivity {
             sc2=new java.util.Scanner(fis2);
             while(sc2.hasNextLine()){
                 View convertView=layoutInflater.inflate(R.layout.stock_item,null,true);
+                ImageView poster=convertView.findViewById(R.id.product_picture);
+                String key=sc2.nextLine();
+                poster.setTag(key);//tag is used later to upload url of pictur being uploaded
+                try {
+                    Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/" +key + ".png"))
+                            .diskCacheStrategy(DiskCacheStrategy.NONE)
+                            .skipMemoryCache(true).into(poster);
+                }
+                catch(Exception exception){
+
+                }
                 TextView textViewName=convertView.findViewById(R.id.product_name);
                 TextView textViewCount=convertView.findViewById(R.id.product_count);
                 TextView textViewPrice=convertView.findViewById(R.id.product_price);
@@ -220,6 +259,15 @@ public class Stock extends AppCompatActivity {
                                     TextView textViewCount = convertView.findViewById(R.id.product_count);
                                     TextView textViewPrice = convertView.findViewById(R.id.product_price);
                                     TextView textViewUnit = convertView.findViewById(R.id.product_unit);
+                                    ImageView poster=convertView.findViewById(R.id.product_picture);
+                                    try {
+                                        Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/" +stockItem.key + ".png"))
+                                                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                                .skipMemoryCache(true).into(poster);
+                                    }
+                                    catch(Exception exception){
+
+                                    }
 
                                     textViewName.setText(stockItem.name);
                                     textViewCount.setText(stockItem.count);
@@ -287,7 +335,7 @@ public class Stock extends AppCompatActivity {
         childEventListener=new ChildEventListener() {
             int count=0;
             @Override
-            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+            public void onChildAdded(@NonNull final DataSnapshot dataSnapshot, @Nullable String s) {
                 FileOutputStream fos=null;
                 PrintWriter pw=null;
                 try {
@@ -306,6 +354,7 @@ public class Stock extends AppCompatActivity {
                     pw=null;
                 }
                 ArrayList<String> item=dataSnapshot.getValue(new GenericTypeIndicator<ArrayList<String>>(){});
+                String key=dataSnapshot.getKey();
                 final String itemName=item.get(0);
                 final String itemCount=item.get(1);
                 final String itemPrice=item.get(2);
@@ -313,14 +362,34 @@ public class Stock extends AppCompatActivity {
                 //try catch block to ensure app doesn't crash if old apps edit database
                 String itemUnit="";
                 String itemCategory="";
+                String url="";
+                String costPrices="";
+                final String urlCopy;
+
                 try {
                     itemUnit=item.get(3);
                     itemCategory=item.get(4);
+                    url=item.get(5);
                 }
                 catch(Exception e){
 
                 }
-                stockItems.add(new StockItem(itemName,itemCount,itemUnit,itemPrice,itemCategory));
+
+                try{
+                    costPrices=item.get(7);
+                }
+                catch (Exception e){
+
+                }
+
+
+                if (!url.equals("")) {
+                    urlCopy = url;
+                }
+                else {
+                    urlCopy="";
+                }
+                stockItems.add(new StockItem(itemName,itemCount,itemUnit,itemPrice,itemCategory,key));
                 /*productName.add(itemName);
                 productCount.add(itemCount);
                 productUnit.add(itemUnit);
@@ -328,6 +397,32 @@ public class Stock extends AppCompatActivity {
 
                 LayoutInflater layoutInflater=(LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
                 final View convertView=layoutInflater.inflate(R.layout.stock_item,null,true);
+                ImageView poster=convertView.findViewById(R.id.product_picture);
+                poster.setTag(dataSnapshot.getKey());//tag is used later to upload url of picture being uploaded
+                if(!url.equals("")) {
+                    Glide.with(poster.getContext()).asBitmap().load(url).listener(new RequestListener<Bitmap>() {
+                        @Override
+                        public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Bitmap> target, boolean isFirstResource) {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean onResourceReady(Bitmap resource, Object model, Target<Bitmap> target, DataSource dataSource, boolean isFirstResource) {
+                            try {
+                                FileOutputStream fos2 = new FileOutputStream(new File("/data/data/g.o.gotechpos/files/" + dataSnapshot.getKey() + ".png"));
+                                //Bitmap bitmap = ((BitmapDrawable) poster.getDrawable()).getBitmap();
+                                resource.compress(Bitmap.CompressFormat.PNG, 100, fos2);
+                                fos2.flush();
+                                fos2.close();
+                            } catch (Exception exception) {
+                                Toast.makeText(getApplicationContext(), "error", Toast.LENGTH_SHORT).show();
+                            }
+                            return false;
+                        }
+                    }).into(poster);
+                }
+
+
                 TextView textViewName=convertView.findViewById(R.id.product_name);
                 TextView textViewCount=convertView.findViewById(R.id.product_count);
                 TextView textViewPrice=convertView.findViewById(R.id.product_price);
@@ -341,6 +436,7 @@ public class Stock extends AppCompatActivity {
                 try{
                     //write to file
                     if(pw!=null){
+                        pw.println(dataSnapshot.getKey());
                         pw.println(itemName);
                         pw.println(itemCount);
                         pw.println(itemPrice);
@@ -351,6 +447,8 @@ public class Stock extends AppCompatActivity {
                 catch (Exception exception){
 
                 }
+
+                final String costPricesCopy=costPrices;
 
                 final String i=itemUnit;
                 convertView.setTag(dataSnapshot.getKey());
@@ -364,6 +462,8 @@ public class Stock extends AppCompatActivity {
                                 .putExtra("count",itemCount)
                                 .putExtra("unit",i)
                                 .putExtra("category",(Serializable)category)
+                                .putExtra("url",urlCopy)
+                                .putExtra("cost_prices",costPricesCopy)
 
                         );
                     }
@@ -484,6 +584,16 @@ public class Stock extends AppCompatActivity {
     }
 
 
+    public void setPhoto(View view) {
+        clickedImageTag=view.getTag().toString();
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        startActivityForResult(intent, 2);
+
+    }
+
+
     public void addToStock(View view){
         Intent intent=new Intent(this,AddStock.class);
         intent.putExtra("category",(Serializable) category);
@@ -494,7 +604,7 @@ public class Stock extends AppCompatActivity {
 
     //set sortBy field and carryout highlight operation
     public  void sortBy(View view){
-        List<Integer> ids=new ArrayList<>(Arrays.asList(R.id.sby_category,R.id.sby_name,R.id.sby_count,R.id.sby_unit,R.id.sby_price));
+        List<Integer> ids=new ArrayList<>(Arrays.asList(R.id.sby_name,R.id.sby_count,R.id.sby_unit,R.id.sby_price));
         TextView textView=(TextView)view;
         textView.setTextColor(Color.parseColor("#000000"));
         textView.setTypeface(Typeface.DEFAULT_BOLD);
@@ -541,6 +651,15 @@ public class Stock extends AppCompatActivity {
             TextView textViewCount=convertView.findViewById(R.id.product_count);
             TextView textViewPrice=convertView.findViewById(R.id.product_price);
             TextView textViewUnit=convertView.findViewById(R.id.product_unit);
+            ImageView poster=convertView.findViewById(R.id.product_picture);
+            try {
+                Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/" +stockItem.key + ".png"))
+                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                        .skipMemoryCache(true).into(poster);
+            }
+            catch(Exception exception){
+
+            }
 
             textViewName.setText(stockItem.name);
             textViewCount.setText(stockItem.count);
@@ -611,8 +730,8 @@ public class Stock extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode==1){
-            if(resultCode== Activity.RESULT_OK){
+        if(resultCode== Activity.RESULT_OK){
+            if(requestCode==1){
                 String name=data.getStringExtra("name");
                 categoryRef.push().setValue(name).addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
@@ -627,9 +746,77 @@ public class Stock extends AppCompatActivity {
                 });
 
             }
+            else if(requestCode==2){
+                Uri uri=data.getData();
+                try {
+                    InputStream is = getContentResolver().openInputStream(uri);
+                    Bitmap bitmap = BitmapFactory.decodeStream(is);
+                    //upload file
+                    sr = storage.getReference(UUID.randomUUID().toString())/*.child(FirebaseAuth.getInstance().getCurrentUser().getUid())*/;
+                    if(uri!=null) {
+                        sr.putFile(uri).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+                            @Override
+                            public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+                                if (task.isSuccessful()) {
+                                    sr.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                        @Override
+                                        public void onSuccess(final Uri uri) {
+                                            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                                            if (user != null) {
+                                                //EditText editText = (EditText) findViewById(R.id.edit_text_post);
+                                                //String post = editText.getText().toString().trim();
+                                                //Toast.makeText(getApplicationContext(),clickedImageTag,Toast.LENGTH_SHORT).show();
+                                                reference.child(clickedImageTag).child("5").setValue(uri.toString()).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                    @Override
+                                                    public void onComplete(@NonNull Task<Void> task) {
+                                                        if(task.isSuccessful()){
+                                                            Toast.makeText(getApplicationContext(),"image uploaded",Toast.LENGTH_SHORT).show();
+                                                        }
+                                                    }
+                                                });
+
+                                            } else {
+                                                /*Toast.makeText(getApplicationContext(), "Please login", Toast.LENGTH_SHORT).show();
+                                                finish();*/
+                                            }
+
+                                        }
+                                    }).addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            Toast.makeText(getApplicationContext(), "failed to get photo url", Toast.LENGTH_SHORT).show();
+                                            //finish();
+                                        }
+                                    });
+
+                                    //Toast.makeText(getApplicationContext(), "upload successful", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(getApplicationContext(), "upload failed", Toast.LENGTH_SHORT).show();
+                                    //finish();
+                                }
+                            }
+                        });
+                    }
+
+                } catch (Exception e) {
+                }
+
+
+            }
         }
 
+
+    }//onActivityResult()
+
+
+    public void onProductPicClick(View view){
+
     }
+
+    public void miniAddProduct(View view){
+        startActivity(new Intent(Stock.this,MiniAddActivity.class).putExtra("barcode",));
+    }
+
 }
 
 
@@ -640,47 +827,44 @@ class StockItem implements Comparable<StockItem>{
     static final int SORTBYPRICE=1;
     static final int SORTBYCOUNT=2;
     static final int SORTBYUNIT=3;
-    static  final int SORTBYCATEGORY=4;
+    //static  final int SORTBYCATEGORY=4;
 
     static int sortBy=SORTBYNAME;//default sortBY
 
+    String key;
     String name;
     String count;
     String unit;
     String price;
     String category;
 
-    public StockItem(String name, String count, String unit, String price, String category){
+    public StockItem(String name, String count, String unit, String price, String category, String key){
         this.name=name;
         this.count=count;
         this.unit=unit;
         this.price=price;
         this.category=category;
+        this.key=key;
     }
 
     @Override
     public int compareTo(StockItem o){
-        List<String> list1=new ArrayList(Arrays.asList(name,price,count,unit));
-        List<String> list2=new ArrayList(Arrays.asList(o.name,o.price,o.count,o.unit));
+        List<String> list1=new ArrayList(Arrays.asList(/*category,*/name,price,count,unit));
+        List<String> list2=new ArrayList(Arrays.asList(/*o.category,*/o.name,o.price,o.count,o.unit));
 
-        if(sortBy==SORTBYCATEGORY){
-            list1.add(0,this.category);
-            list2.add(0,o.category);
-        }
-        else{
-            //move to sortby item to front of arrays
-            String string1=list1.get(sortBy);
-            String string2=list2.get(sortBy);
 
-            list1.remove(sortBy);
-            list2.remove(sortBy);
 
-            list1.add(0,string1);
-            list2.add(0,string2);
+        //move to sortby item to front of arrays
+        String string1=list1.get(sortBy);
+        String string2=list2.get(sortBy);
 
-            list1.add(0,this.category);
-            list2.add(0,o.category);
-        }
+        list1.remove(sortBy);
+        list2.remove(sortBy);
+
+        list1.add(0,string1);
+        list2.add(0,string2);
+
+
 
 
         //compare
@@ -716,6 +900,15 @@ class StockItem implements Comparable<StockItem>{
     public View yieldNullOrHighlightedStockItem(Context context, List<Boolean> toSearchBy,String string,boolean returnUnchanged){
         LayoutInflater layoutInflater=(LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         final View convertView=layoutInflater.inflate(R.layout.stock_item,null,true);
+        ImageView poster=convertView.findViewById(R.id.product_picture);
+        try {
+            Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/" +key + ".png"))
+                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                    .skipMemoryCache(true).into(poster);
+        }
+        catch(Exception exception){
+
+        }
         List<TextView> textViews=new ArrayList<>(Arrays.asList(
                 (TextView)convertView.findViewById(R.id.product_name),
                 (TextView)convertView.findViewById(R.id.product_count),
@@ -728,6 +921,7 @@ class StockItem implements Comparable<StockItem>{
             textViews.get(1).setText(this.count);
             textViews.get(2).setText(this.unit);
             textViews.get(3).setText(this.price);
+
             return convertView;
         }
 

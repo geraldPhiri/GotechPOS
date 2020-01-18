@@ -1,6 +1,7 @@
 package g.o.gotechpos;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 
@@ -10,15 +11,20 @@ import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.request.target.Target;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -30,24 +36,22 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
 
 public class Profile extends AppCompatActivity {
     TextView userName, address,phone;
     FirebaseUser user;
     FirebaseDatabase database;
-    DatabaseReference userDetailsReference, phoneDetailsReference;
+    DatabaseReference userDetailsReference, phoneDetailsReference, referenceToName,referenceToUri;
     StorageReference sr;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,10 +67,32 @@ public class Profile extends AppCompatActivity {
         final String uid=user.getUid();
         userDetailsReference=database.getReference("ProductionDB/Users/"+uid+"/Details");
         phoneDetailsReference=database.getReference("ProductionDB/Users/"+uid+"/Phone");
-
+        referenceToName=database.getReference("ProductionDB/Users/"+uid+"/Name");
+        referenceToUri=database.getReference("ProductionDB/Users/"+uid+"/Uri");
         /*
-         *load address, phone number from internal storage.
+         *load name, pic, address, phone number from internal storage.
          */
+        try{
+            FileInputStream is = openFileInput(uid + "Name");
+            Scanner sc=new Scanner(is);
+            if(sc.hasNextLine()) {
+                userName.setText(sc.nextLine());
+            }
+        }
+        catch (Exception e){
+
+        }
+
+        try{
+            ImageView poster=findViewById(R.id.profile_picture);
+            Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/" + uid + ".png"))
+                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                    .skipMemoryCache(true).apply(new RequestOptions().circleCrop()).into(poster);
+        }
+        catch (Exception e){
+
+        }
+
         try {
             FileInputStream is = openFileInput(uid + "Address");
             FileInputStream is2 = openFileInput(uid + "Phone");
@@ -86,12 +112,79 @@ public class Profile extends AppCompatActivity {
 
 
         {   //load data from firebase to ensure that user is seeing updated information
-            Uri photoUrl = user.getPhotoUrl();
-            if (photoUrl != null) {
-                ImageView profilePicture = findViewById(R.id.profile_picture);
-                Glide.with(profilePicture.getContext()).load(photoUrl).apply(new RequestOptions().circleCrop()).into(profilePicture);
-            }
-            userName.setText(user.getDisplayName());
+            referenceToUri.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    String photoUrl = dataSnapshot.getValue(String.class);
+                    if (photoUrl != null) {
+                        //ImageView profilePicture = findViewById(R.id.profile_picture);
+                        ImageView poster=findViewById(R.id.profile_picture);
+                        Glide.with(poster.getContext()).asBitmap().load(photoUrl).listener(new RequestListener<Bitmap>() {
+                            @Override
+                            public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Bitmap> target, boolean isFirstResource) {
+                                return false;
+                            }
+
+                            @Override
+                            public boolean onResourceReady(Bitmap resource, Object model, Target<Bitmap> target, DataSource dataSource, boolean isFirstResource) {
+                                try {
+                                    FileOutputStream fos2 = new FileOutputStream(new File("/data/data/g.o.gotechpos/files/" + FirebaseAuth.getInstance().getCurrentUser().getUid() + ".png"));
+                                    //Bitmap bitmap = ((BitmapDrawable) poster.getDrawable()).getBitmap();
+                                    resource.compress(Bitmap.CompressFormat.PNG, 100, fos2);
+                                    fos2.flush();
+                                    fos2.close();
+                                }
+                                catch (Exception exception){
+                                    Toast.makeText(getApplicationContext(),"error", Toast.LENGTH_SHORT).show();
+                                }
+                                return false;
+                            }
+                        }).apply(new RequestOptions().circleCrop()).into(poster);
+                        //Glide.with(profilePicture.getContext()).load(photoUrl).apply(new RequestOptions().circleCrop()).into(profilePicture);
+                    }
+                    //save uri to device
+                    try {
+                        FileOutputStream file = openFileOutput(uid + "Uri", MODE_PRIVATE);
+                        PrintWriter pw=new PrintWriter(file);
+                        pw.println(photoUrl);
+                        pw.close();
+                    }
+                    catch (Exception exception){
+
+                    }
+                    referenceToName.removeEventListener(this);
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
+
+
+            referenceToName.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    userName.setText(dataSnapshot.getValue(String.class));
+                    //save name to device
+                    try {
+                        FileOutputStream file = openFileOutput(uid + "Name", MODE_PRIVATE);
+                        PrintWriter pw=new PrintWriter(file);
+                        pw.println(userName.getText().toString());
+                        pw.close();
+                    }
+                    catch (Exception exception){
+
+                    }
+                    referenceToName.removeEventListener(this);
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
+
 
             /*
              *update the address, phone number of the user's profile.
@@ -174,15 +267,44 @@ public class Profile extends AppCompatActivity {
                         sr.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                             @Override
                             public void onSuccess(final Uri uri) {
-                                user.updateProfile(new UserProfileChangeRequest.Builder().setPhotoUri(uri).build()).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                /*user.updateProfile(new UserProfileChangeRequest.Builder().setPhotoUri(uri).build()).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<Void> task) {
+
+
+                                    }
+                                });*/
+                                referenceToUri.setValue(uri.toString()).addOnCompleteListener(new OnCompleteListener<Void>() {
                                     @Override
                                     public void onComplete(@NonNull Task<Void> task) {
                                         if (task.isSuccessful()) {
-                                            Glide.with(profilePicture.getContext()).load(uri).apply(new RequestOptions().circleCrop()).into(profilePicture);
-                                        } else {
-                                            Toast.makeText(getApplicationContext(), "failed to update user profile", Toast.LENGTH_SHORT).show();
-                                        }
+                                            Toast.makeText(getApplicationContext(), "upload successful", Toast.LENGTH_SHORT).show();
+                                            //ImageView poster=findViewById(R.id.profile_picture);
+                                            /*Glide.with(poster.getContext()).asBitmap().load(uri).listener(new RequestListener<Bitmap>() {
+                                                @Override
+                                                public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Bitmap> target, boolean isFirstResource) {
+                                                    return false;
+                                                }
 
+                                                @Override
+                                                public boolean onResourceReady(Bitmap resource, Object model, Target<Bitmap> target, DataSource dataSource, boolean isFirstResource) {
+                                                    try {
+                                                        FileOutputStream fos2 = new FileOutputStream(new File("/data/data/g.o.gotechpos/files/" + FirebaseAuth.getInstance().getCurrentUser().getUid() + ".png"));
+                                                        //Bitmap bitmap = ((BitmapDrawable) poster.getDrawable()).getBitmap();
+                                                        resource.compress(Bitmap.CompressFormat.PNG, 100, fos2);
+                                                        fos2.flush();
+                                                        fos2.close();
+                                                    }
+                                                    catch (Exception exception){
+                                                        Toast.makeText(getApplicationContext(),"error", Toast.LENGTH_SHORT).show();
+                                                    }
+                                                    return false;
+                                                }
+                                            }).apply(new RequestOptions().circleCrop()).into(poster);*/
+                                            //Glide.with(profilePicture.getContext()).load(uri).apply(new RequestOptions().circleCrop()).into(profilePicture);
+                                        } else {
+                                            Toast.makeText(getApplicationContext(), "failed to update profile picture", Toast.LENGTH_SHORT).show();
+                                        }
                                     }
                                 });
 
@@ -194,7 +316,7 @@ public class Profile extends AppCompatActivity {
                             }
                         });
 
-                        Toast.makeText(getApplicationContext(), "upload successful", Toast.LENGTH_SHORT).show();
+
                     } else {
                         Toast.makeText(getApplicationContext(), "upload failed", Toast.LENGTH_SHORT).show();
                     }
@@ -317,21 +439,21 @@ public class Profile extends AppCompatActivity {
         else{
             final String editTextString=editText3.getText().toString().trim();
             if (!editTextString.isEmpty()) {
-              /*userDetailsReference.setValue(editTextString).addOnCompleteListener(new OnCompleteListener<Void>() {
+              referenceToName.setValue(editTextString).addOnCompleteListener(new OnCompleteListener<Void>() {
                   @Override
                   public void onComplete(@NonNull Task<Void> task) {
                       if(task.isSuccessful()) {
                           layout.removeView(editText3);
-                          address.setText(editTextString);
+                          userName.setText(editTextString);
                           layout.addView(userName);
                           count3 = 0;
                       }
                       else{
-                          Toast.makeText(Profile.this,"Failed to update phone",Toast.LENGTH_SHORT).show();
+                          Toast.makeText(Profile.this,"Username not set",Toast.LENGTH_SHORT).show();
                       }
                   }
-              });*/
-                FirebaseAuth.getInstance().getCurrentUser().updateProfile(new UserProfileChangeRequest.Builder()
+              });
+                /*FirebaseAuth.getInstance().getCurrentUser().updateProfile(new UserProfileChangeRequest.Builder()
                         .setDisplayName(editTextString).build())
                         .addOnCompleteListener(new OnCompleteListener<Void>() {
                             @Override
@@ -345,7 +467,7 @@ public class Profile extends AppCompatActivity {
                                     Toast.makeText(getApplicationContext(), "Username not set", Toast.LENGTH_SHORT).show();
                                 }
                             }
-                        });
+                        });*/
             } else {
                 Toast.makeText(getApplicationContext(), "you havent entered a Username", Toast.LENGTH_SHORT).show();
             }

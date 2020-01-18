@@ -29,12 +29,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
+import java.util.UUID;
 
 public class AddProduct extends AppCompatActivity {
+    String url="";
+
     AutoCompleteTextView autoCompleteTextView;
     List<String> categories=new ArrayList<>();
 
     String[] units={"mL","L","g","Kg"};
+
+    String costPrices;
 
     EditText editTextName,editTextPrice,editTextCount,editTextUnit;
     String barcode;
@@ -86,6 +91,8 @@ public class AddProduct extends AppCompatActivity {
             editTextCount.setText(intent.getStringExtra("count"));
             editTextUnit.setText(intent.getStringExtra("unit"));
             categories=(List<String>)intent.getSerializableExtra("category");
+            url=intent.getStringExtra("url");
+            costPrices=intent.getStringExtra("cost_prices");
 
         }
         autoCompleteTextView.setAdapter(new ArrayAdapter<String>(AddProduct.this,android.R.layout.simple_list_item_1,categories));
@@ -103,7 +110,10 @@ public class AddProduct extends AppCompatActivity {
                 editTextCount.getText().toString(),
                 editTextPrice.getText().toString(),
                 editTextUnit.getText().toString()+" "+spinner.getSelectedItem().toString(),
-                autoCompleteTextView.getText().toString()))
+                autoCompleteTextView.getText().toString(),
+                url,
+                UUID.randomUUID().toString()/*,
+                costPrice*/))
         ).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {

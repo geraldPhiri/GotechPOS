@@ -1,6 +1,7 @@
 package g.o.gotechpos;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import androidx.appcompat.widget.PopupMenu;
 
@@ -41,14 +42,18 @@ import com.vincent.bottomnavigationbar.BottomNavigationBar;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 
 
 public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChangeListener{
+  HashSet<String> employeesHashSet=new HashSet<>();
+
   ArrayList<Entry> values = new ArrayList<>();
 
   private LineChart chart;
@@ -77,8 +82,13 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
       fis2=openFileInput("Reports.txt");
       sc2=new java.util.Scanner(fis2);
       while(sc2.hasNextLine()){
-        ReportItem reportItem=new ReportItem(sc2.nextLine(),sc2.nextLine(),sc2.nextLine());
+        String a=sc2.nextLine();
+        String b=sc2.nextLine();
+        String c=sc2.nextLine();
+        String d=sc2.nextLine();
+        ReportItem reportItem=new ReportItem(a,b,c,d);
         reportItems.add(reportItem);
+        employeesHashSet.add(d);
       }
 
       dailyIndicator(reportItems);
@@ -91,7 +101,6 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
       fis2=null;
       sc2=null;
     }
-
 
 
     database=FirebaseDatabase.getInstance();
@@ -108,6 +117,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
             fos = openFileOutput("Reports.txt", MODE_PRIVATE);
             fos.close();
             reportItems.clear();
+            employeesHashSet.clear();
             //linearLayout.removeAllViews();
             ++count;
           }
@@ -127,8 +137,10 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
           final String itemName = item.get(0);
           final String itemPrice = item.get(1);
           final String date = item.get(2);
+          final String uuid=item.get(3);
+          employeesHashSet.add(uuid);
 
-          reportItems.add(new ReportItem(itemName,itemPrice,date));
+          reportItems.add(new ReportItem(itemName,itemPrice,date,uuid));
 
                         /*LayoutInflater layoutInflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
                         View convertView = layoutInflater.inflate(R.layout.report_item, null, true);
@@ -147,6 +159,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
               pw.println(itemName);
               pw.println(itemPrice);
               pw.println(date);
+              pw.println(uuid);
               //pw.println(itemPrice);
               //pw.println(barcode);
             }
@@ -234,6 +247,17 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
     item2.setActiveTextColor(Color.parseColor("#E64B4E"));
     bnb.addItem(item2);
 
+    /*BottomItem item4 = new BottomItem();
+    item4.setMode(BottomItem.DRAWABLE_MODE);
+    item4.setText("Employees");
+    item4.setActiveIconResID(getResources().getIdentifier("ic_people", "drawable",
+            getApplicationInfo().packageName));
+    item4.setInactiveIconResID(getResources().getIdentifier("ic_people", "drawable",
+            getApplicationInfo().packageName));
+    item4.setInactiveTextColor(Color.parseColor("#000000"));
+    item4.setActiveTextColor(Color.parseColor("#E64B4E"));
+    bnb.addItem(item4);*/
+
     bnb.addOnSelectedListener(new BottomNavigationBar.OnSelectedListener() {
       @Override
       public void OnSelected(int oldPosition, int newPosition) {
@@ -253,6 +277,12 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
           monthlyIndicator(reportItems);
 
         }
+        else if(newPosition==3){
+          reportTitle.setText("Employees");
+          linearLayout.removeAllViews();
+          listEmployees();
+
+        }
       }
     });
     bnb.setSelectedPosition(0); //Set default item
@@ -267,6 +297,22 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
 
   }
 
+  public void listEmployees(){
+    startActivityForResult(new Intent(Reports.this,EmployeesLayout.class),1);
+  }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+    if(requestCode==1){
+      if(resultCode==RESULT_OK){
+        String uuid=data.getStringExtra("uuid");
+
+
+      }
+    }
+
+  }
 
   @Override
   protected void onDestroy() {
@@ -686,13 +732,14 @@ class ReportItem implements Comparable<ReportItem>{
   String productName;
   String price;
   String dateSold;
-  String seller;
+  String sellerUuid;
   String[] dateSoldItems;
 
-  ReportItem(String productName,String price,String dateSold){
+  ReportItem(String productName,String price,String dateSold,String uuid){
     this.productName=productName;
     this.price=price;
     this.dateSold=dateSold;
+    this.sellerUuid=uuid;
     dateSoldItems=dateSold.split("-");
   }
 
@@ -710,7 +757,6 @@ class ReportItem implements Comparable<ReportItem>{
     }
     return 0;
   }
-
 
 
 }

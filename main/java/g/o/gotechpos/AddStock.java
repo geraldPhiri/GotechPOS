@@ -20,13 +20,15 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 public class AddStock extends AppCompatActivity {
+    String costPrice="---";
     AutoCompleteTextView autoCompleteTextView;
     String[] units={"mL","L","g","Kg"};
 
     List<String> categories;
-    EditText editTextName,editTextCount,editTextPrice,editTextBarcode,editTextUnit;
+    EditText editTextName,editTextCount,editTextPrice,editTextBarcode,editTextUnit,editTextCostPrice;
 
     FirebaseDatabase database;
     DatabaseReference reference;
@@ -51,6 +53,7 @@ public class AddStock extends AppCompatActivity {
         editTextCount=findViewById(R.id.product_count);
         editTextBarcode=findViewById(R.id.product_barcode);
         editTextUnit=findViewById(R.id.product_unit);
+        editTextCostPrice=findViewById(R.id.product_cost_price);
         spinner=findViewById(R.id.spinner);
 
         ArrayAdapter adapter=new ArrayAdapter(this,android.R.layout.simple_spinner_dropdown_item,units);
@@ -69,6 +72,9 @@ public class AddStock extends AppCompatActivity {
         String barcode=editTextBarcode.getText().toString();
         String unit=editTextUnit.getText().toString()+" "+spinner.getSelectedItem().toString();
         String category=autoCompleteTextView.getText().toString();
+        if(!editTextCostPrice.getText().toString().equals("")){
+            costPrice=editTextCostPrice.getText().toString();
+        }
 
         /*try {
             FileOutputStream fos = openFileOutput(getIntent().getStringExtra("barcode") + ".txt", MODE_PRIVATE);
@@ -81,7 +87,7 @@ public class AddStock extends AppCompatActivity {
             Toast.makeText(getApplicationContext(),ex.toString(),Toast.LENGTH_LONG).show();
         }*/
 
-        reference.child(barcode).setValue(new ArrayList<String>(Arrays.asList(name,count,price,unit,category)));
+        reference.child(barcode).setValue(new ArrayList<String>(Arrays.asList(name,count,price,unit,category,"",UUID.randomUUID().toString(), costPrice)));
 
 
         finish();

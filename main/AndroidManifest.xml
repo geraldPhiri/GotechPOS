@@ -30,6 +30,8 @@
             android:name="com.journeyapps.barcodescanner.CaptureActivity"
             android:screenOrientation="portrait"
             tools:replace="screenOrientation" />
+        <activity android:name=".EmployeesLayout">
+        </activity>
 
         <activity android:name=".Login">
             <intent-filter>
@@ -39,6 +41,10 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".MiniAddActivity"
+            android:theme="@style/Theme.AppCompat.Light.Dialog"
+            >
+        </activity>
         <activity android:name=".MainActivity"></activity>
         <activity android:name=".Registration"></activity>
         <activity android:name=".Profile"></activity>
@@ -64,6 +70,10 @@
             >
         </activity>
         <activity android:name=".Subscribe"></activity>
+        <activity android:name=".AddCategory"
+            android:theme="@style/Theme.AppCompat.Light.Dialog"
+            >
+        </activity>
         <activity android:name=".Group"></activity>
         <service
             android:name=".MService"

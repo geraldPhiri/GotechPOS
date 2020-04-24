@@ -1,5 +1,8 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+
+const lodash = require('lodash.toarray');
+
 admin.initializeApp();
 
 exports.liveUrlChange = functions.database.ref('ProductionDB/Stock/{barcode}/6').onWrite((change,context) => {
@@ -53,12 +56,46 @@ exports.liveUrlChange = functions.database.ref('ProductionDB/Stock/{barcode}/6')
 
 
 //change stock count on every item sold. use info in reports to do so
-exports.decrementStockItemCount = functions.database.ref('ProductionDB/Reports/{key}').onCreate((snapshot,context) =>{
-    console.log('Decrement: In onCreate')
-    snapshot.forEach(function(childSnapshot) {
-                            console.log('Decrement: In forEach')
-                           // childData will be the actual contents of the child
-                           var childData = childSnapshot.val();
-                           console.log('Decrement:', childData[0])
+exports.decrementStockItemCount= functions.database.ref('ProductionDB/Reports/{key}').onCreate((snapshot,context) =>{
+    console.log('Decrement: In onCreate');
+	/*var valu=snapshot.val;*/
+    return admin.database().ref('ProductionDB/Reports/' + snapshot.key).once('value').then((snap)=>{
+		snap.forEach(function(child) {
+            const childKey = child.key;  // <- here you get the key of each child of the '/account/' + userId node
+
+            const childVal = child.val; // <- and here you get the values of these children as JavaScript objects
+
+            //const ind=_.toArray(childVal);
+            var db = admin.database()
+            console.log("above forEach");
+            child.forEach(function(c){
+                if(c.key==="5"){
+                        console.log("almost in transaction");
+                        var upvotesRef = db.ref("ProductionDB/Stock/"+c.val()+"/1");
+                        upvotesRef.transaction(function (current_value) {
+                          console.log("In transaction");
+
+                          console.log("count: "+c.val());
+                          var ans=parseFloat(current_value)-1;
+                          return (ans.toString() || "0");
+                        },
+                        (error, committed, snapshot) => {
+                                if(committed) {
+                                  // Send the message.
+                                  console.log("successful decrement");
+                                }
+                              });
+                }
+
+            })
+			
+        });
+		return 1;
+		}
+    ).catch((error) => {
+                          console.error('Error sending message:', error);
                       });
+	
+
+
 });

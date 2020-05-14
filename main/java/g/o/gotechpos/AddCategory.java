@@ -19,7 +19,6 @@ public class AddCategory extends AppCompatActivity {
 
   }
 
-
   public void sendCategoryBack(View view){
     Intent intent=new Intent();
     intent.putExtra("name",editTextName.getText().toString());

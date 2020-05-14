@@ -7,6 +7,7 @@
 
     <com.vincent.bottomnavigationbar.BottomNavigationBar
         android:layout_alignParentBottom="true"
+        android:layout_above="@+id/ad"
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
@@ -22,14 +23,31 @@
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-            <TextView
-                android:id="@+id/report_title"
-                android:text="Report"
-                android:textStyle="bold"
-                android:textColor="#000"
-                android:textSize="19sp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            >
+                <TextView
+                        android:id="@+id/report_title"
+                        android:layout_alignParentLeft="true"
+                        android:text="Report"
+                        android:textStyle="bold"
+                        android:textColor="#000"
+                        android:textSize="19sp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+                <TextView
+                        android:id="@+id/show_all"
+                        android:layout_alignParentRight="true"
+                        android:text="Show For All"
+                        android:textStyle="bold"
+                        android:textColor="#0A0"
+                        android:textSize="19sp"
+                        android:onClick="showAll"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+            </RelativeLayout>
+
             <com.github.mikephil.charting.charts.LineChart
                 android:visibility="gone"
                 android:id="@+id/chart1"
@@ -79,6 +97,18 @@
         android:background="#000"
         android:layout_width="match_parent"
         android:layout_height="2sp"/>
+
+    <com.google.android.gms.ads.AdView
+            xmlns:ads="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/ad"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_alignParentBottom="true"
+            ads:adSize="FULL_BANNER"
+            ads:adUnitId="ca-app-pub-8853847321207681/4184606374">
+    </com.google.android.gms.ads.AdView>
+
 
 
 </RelativeLayout>

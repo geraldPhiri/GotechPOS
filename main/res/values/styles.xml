@@ -8,4 +8,11 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="AppThemeDM" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimaryDM</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarkDM</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
 </resources>

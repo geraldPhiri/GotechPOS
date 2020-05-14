@@ -15,6 +15,10 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
+        <TextView android:id="@+id/category"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:visibility="gone"/>
+
         <ImageView
             android:elevation="20sp"
             android:layout_alignParentLeft="true"
@@ -42,17 +46,18 @@
         android:layout_weight="2"
         android:layout_height="wrap_content">
         <TextView
-            android:text="Vaseline Lotion"
+            android:text=""
             android:id="@+id/product_name"
             android:textColor="#000"
             android:layout_alignParentLeft="true"
             android:layout_marginLeft="10sp"
+            android:textStyle="bold"
             android:layout_centerVertical="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
         <TextView
             android:textStyle="bold"
-            android:text="k25"
+            android:text=""
             android:id="@+id/product_price"
             android:layout_marginLeft="10sp"
             android:textSize="25sp"
@@ -85,13 +90,12 @@
                 android:layout_centerVertical="true"
                 android:layout_marginLeft="1sp"
                 android:layout_toRightOf="@+id/currency"
-                android:text="97"
+                android:text=""
                 android:textColor="#888"
                  />
 
-            <LinearLayout
+            <!--<LinearLayout
                 android:id="@+id/ll"
-                android:onClick="miniAddProduct"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content">
             <TextView
@@ -115,7 +119,7 @@
                 android:text="0"
                 android:textColor="#888"
                 />
-            </LinearLayout>
+            </LinearLayout>-->
 
         </LinearLayout>
         <!--<LinearLayout

@@ -4,6 +4,9 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:fab="http://schemas.android.com/tools">
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent"
+    android:layout_above="@+id/ad"
+    >
     <LinearLayout
         android:orientation="vertical"
         android:background="#fff"
@@ -245,5 +248,18 @@
         android:elevation="20sp"
         android:backgroundTint="#FFF"
         />
+
+    </RelativeLayout>
+
+    <com.google.android.gms.ads.AdView
+            xmlns:ads="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/ad"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_alignParentBottom="true"
+            ads:adSize="FULL_BANNER"
+            ads:adUnitId="ca-app-pub-8853847321207681/4184606374">
+    </com.google.android.gms.ads.AdView>
 
 </RelativeLayout>

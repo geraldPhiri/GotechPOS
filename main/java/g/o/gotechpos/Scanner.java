@@ -1,5 +1,6 @@
 package g.o.gotechpos;
 
+import android.hardware.Camera;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -27,52 +28,48 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.ChildEventListener;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
+
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.GenericTypeIndicator;
-import com.google.firebase.database.MutableData;
-import com.google.firebase.database.Query;
-import com.google.firebase.database.Transaction;
 
 import com.google.zxing.ResultPoint;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 import com.journeyapps.barcodescanner.BarcodeCallback;
 import com.journeyapps.barcodescanner.BarcodeResult;
-import com.journeyapps.barcodescanner.BarcodeView;
+
+import com.journeyapps.barcodescanner.DecoratedBarcodeView;
+import com.journeyapps.barcodescanner.camera.CameraParametersCallback;
 import com.journeyapps.barcodescanner.camera.CameraSettings;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 
 import java.util.ArrayList;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 
 public class Scanner extends AppCompatActivity {
-    String uuid;
+    String uuid,uuid2;
 
+    //DatabaseReference referenceToProfits;
     FirebaseDatabase database;
-    DatabaseReference reference;
+    //DatabaseReference reference;
     DatabaseReference referenceToUserReport;
 
     //to store content in database
     private List<String> fullProductNames=new ArrayList<String>();
     private List<String> fullProductPrices=new ArrayList<String>();
     private List<String> fullBarcodes=new ArrayList<String>();
+    private List<String> cost1=new ArrayList<>();
+    private List<String> cost2=new ArrayList<>();
 
     //to store content read by scanner
     private List<String> productName=new ArrayList<String>();
@@ -90,37 +87,51 @@ public class Scanner extends AppCompatActivity {
     TextView textViewPrice, textViewCustomersCash;
     MediaPlayer mediaPlayer;
 
-    BarcodeView barcodeView;
-    // IntentIntegrator scanIntegrator;
+    DecoratedBarcodeView barcodeView;
+    //IntentIntegrator scanIntegrator;
+
+    /*public String getChosenCount(String productNAme){
+        File file = new File(productNAme+"_useCount2.txt");
+        if(file.exists()){
+            return "9";//for use count2
+        }
+        return "1";//for use count1
+    }*/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.scanner);
         database=FirebaseDatabase.getInstance();
-        reference=database.getReference("ProductionDB/Stock/");
-
-        referenceToUserReport=database.getReference("ProductionDB/Reports/");
+        //reference=database.getReference("ProductionDB/Company/"+getIntent().getStringExtra("company")+"/Stock/");
+        referenceToUserReport=database.getReference("ProductionDB/Company/"+getIntent().getStringExtra("company")+"/Reports/");
+        //referenceToProfits=database.getReference("ProductionDB/Company/"+getIntent().getStringExtra("company")+"/Profits/");
 
 
         mediaPlayer = MediaPlayer.create(this, R.raw.beep_1);
 
         barcodeView=findViewById(R.id.fragmentg);
-        CameraSettings cameraSettings=new CameraSettings();
+        barcodeView.setFocusedByDefault(true);
+
+        /*CameraSettings cameraSettings=new CameraSettings();
         CameraSettings.FocusMode focusMode=cameraSettings.getFocusMode();
-        cameraSettings.setFocusMode(CameraSettings.FocusMode.MACRO);
-        barcodeView.setCameraSettings(cameraSettings);
-        //barcodeView.setTorch(true);
+        cameraSettings.setFocusMode(CameraSettings.FocusMode.CONTINUOUS);*/
+        /*barcodeView.changeCameraParameters(new CameraParametersCallback() {
+            @Override
+            public Camera.Parameters changeCameraParameters(Camera.Parameters parameters) {
+                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+                return parameters;
+            }
+        });*/
+        //barcodeView2.setTorch(true);
 
         //fill full lists
         Intent intent=getIntent();
         fullProductNames=(List<String>) intent.getSerializableExtra("names");
         fullProductPrices=(List<String>) intent.getSerializableExtra("prices");
         fullBarcodes=(List<String>) intent.getSerializableExtra("barcodes");
-        /*for(String s:fullProductNames){
-            Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG).show();
-        }*/
-
+        cost1=(List<String>) intent.getSerializableExtra("cost1");
+        cost2=(List<String>) intent.getSerializableExtra("cost2");
 
 
         textViewPrice=findViewById(R.id.textview_price);
@@ -142,7 +153,9 @@ public class Scanner extends AppCompatActivity {
                     String b=barcodeResult.getText();
                     int index=fullBarcodes.indexOf(b);
                     if(index==-1){
-                        startActivity(new Intent(Scanner.this,AddProduct.class).putExtra("barcode",b));
+                        String company=getIntent().getStringExtra("company");
+                        startActivity(new Intent(Scanner.this,AddProduct.class).putExtra("barcode",b)
+                                .putExtra("company",company));
                     }
                     else {
                         mediaPlayer.start(); // no need to call prepare(); create() does that for you
@@ -173,7 +186,7 @@ public class Scanner extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
         }
 
-    }
+    }//onCreate
 
 
     @Override
@@ -190,7 +203,6 @@ public class Scanner extends AppCompatActivity {
     }
 
     private boolean allPermissionsGranted(){
-
         for(String permission : REQUIRED_PERMISSIONS){
             if(ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED){
                 return false;
@@ -204,66 +216,13 @@ public class Scanner extends AppCompatActivity {
         if(!textViewCustomersCash.getText().toString().isEmpty() & totalPrice!=0F) {
             float change = Float.parseFloat(textViewCustomersCash.getText().toString()) - Float.parseFloat(textViewPrice.getText().toString().substring(2));
             //Toast.makeText(getApplicationContext(),""+change,Toast.LENGTH_LONG).show();
-            Snackbar.make((RelativeLayout) findViewById(R.id.rl), "Change: k" + change, Snackbar.LENGTH_INDEFINITE).setAction("OK", new View.OnClickListener() {
+            Snackbar.make((RelativeLayout) findViewById(R.id.rl), "Change: " + change, Snackbar.LENGTH_INDEFINITE).setAction("OK", new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
 
                 }
             }).setActionTextColor(Color.parseColor("#00AAFF")).show();
 
-            //update firebase database stock
-            for (String productName : productName) {
-                Query query = reference.orderByChild("0").equalTo(productName);
-
-                query.addChildEventListener(new ChildEventListener() {
-                    @Override
-                    public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                        ArrayList<String> item = dataSnapshot.getValue(new GenericTypeIndicator<ArrayList<String>>() {
-                        });
-                        final String itemName = item.get(0);
-                        final String itemCount = item.get(1);
-                        //Toast.makeText(getApplicationContext(),itemName,Toast.LENGTH_LONG).show();
-                        reference.child(dataSnapshot.getKey()).child("1").runTransaction(new Transaction.Handler() {
-
-                            @NonNull
-                            @Override
-                            public Transaction.Result doTransaction(@NonNull MutableData mutableData) {
-                                String count = mutableData.getValue(String.class);
-                                mutableData.setValue(Integer.parseInt(count) - 1 + "");
-                                return Transaction.success(mutableData);
-                            }
-
-                            @Override
-                            public void onComplete(@Nullable DatabaseError databaseError, boolean b, @Nullable DataSnapshot dataSnapshot) {
-                                Toast.makeText(getApplicationContext(),b+"",Toast.LENGTH_LONG).show();
-                            }
-
-
-                        });
-                    }
-
-                    @Override
-                    public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-
-                    }
-
-                    @Override
-                    public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
-
-                    }
-
-                    @Override
-                    public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                    }
-                });
-
-            }
 
             //update report
             String cashierUID = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -275,6 +234,8 @@ public class Scanner extends AppCompatActivity {
                 singleItem.add(date.get(i));
                 singleItem.add(timeStamp.get(i));
                 singleItem.add(cashierUID);
+                singleItem.add(fullBarcodes.get(fullProductNames.indexOf(productName.get(i))));//ToDo:check logic
+
                 item.add(singleItem);
             }
 
@@ -287,23 +248,21 @@ public class Scanner extends AppCompatActivity {
              * thus it might be needed to delete update entry from file if it exists in the file on every success
              *
              *
-             *
              */
 
 
             //ToDo:check logic of code below
             uuid=null; //key
             try {
-                FileOutputStream fos = openFileOutput("ReportFailsKeys.txt", MODE_APPEND);
+                FileOutputStream fos = openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"ReportFailsKeys.txt", MODE_APPEND);
                 PrintWriter pw=new PrintWriter(fos);
 
-                uuid= UUID.randomUUID().toString();
-
+                uuid=UUID.randomUUID().toString();
 
                 pw.println(uuid);
 
 
-                FileOutputStream fos2 = openFileOutput(uuid+".txt", MODE_APPEND);
+                FileOutputStream fos2 = openFileOutput(getIntent().getStringExtra("company")+"_"+uuid+".txt", MODE_APPEND);
                 PrintWriter pw2=new PrintWriter(fos2);
                 for(List<String> singleItem:item){
                     pw2.println(singleItem.get(0));//name
@@ -311,6 +270,7 @@ public class Scanner extends AppCompatActivity {
                     pw2.println(singleItem.get(2));//date
                     pw2.println(singleItem.get(3));//timestamp
                     pw2.println(singleItem.get(4));//cashier
+                    pw2.println(singleItem.get(5));//barcode//ToDo: check if can be null
                 }
                 pw.close();
                 pw2.close();
@@ -326,49 +286,19 @@ public class Scanner extends AppCompatActivity {
             referenceToUserReport.child(uuid).setValue(item).addOnCompleteListener(new OnCompleteListener<Void>() {
                 @Override
                 public void onComplete(@NonNull Task<Void> task) {
-
                     if(task.isSuccessful()){
                         try {
                             /*
                              *read all report fails and put them in a list
                              */
                             Toast.makeText(getApplicationContext(),"file "+uuid,Toast.LENGTH_SHORT).show();
-                            File file=new File("/data/data/g.o.gotechpos/files/"+uuid+".txt");
+                            File file=new File("/data/data/g.o.gotechpos/files/"+getIntent().getStringExtra("company")+"/"+uuid+".txt");
                             if(file.exists()) {
                                 file.delete();
                                 Toast.makeText(getApplicationContext(),"file deleted",Toast.LENGTH_SHORT).show();
                             }
-                            /*FileInputStream fis = openFileInput(uuid+".txt");
-                            java.util.Scanner sc=new java.util.Scanner(fis);
-                            List<List<String>> list=new ArrayList<List<String>>();
-                            for (int i=0;sc.hasNextLine();i++){
-                                list.add(new ArrayList<String>(Arrays.asList(
-                                        sc.nextLine(),
-                                        sc.nextLine(),
-                                        sc.nextLine(),
-                                        sc.nextLine(),
-                                        sc.nextLine()
-                                )));
-                            }
-*/
-                            /*
-                             *delete entry from list which matches entry in item
-                             */
-                            /*for(List<String> l:list){
-                                if(item.contains(l)){
-                                    list.remove(list.indexOf(l));
-                                    Toast.makeText(getApplicationContext(),"removed "+l.get(0),Toast.LENGTH_SHORT).show();
-                                }
-                            }*/
 
-                            /*
-                             *write new list to file
-                             */
-                            /*FileOutputStream fos = openFileOutput(uuid+".txt", MODE_PRIVATE);
-                            PrintWriter p=new PrintWriter(fos);
-                            p.writeObject(list);
-                            oos.close();*/
-                            FileInputStream ff=openFileInput("ReportFailsKeys.txt");
+                            FileInputStream ff=openFileInput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"ReportFailsKeys.txt");
                             java.util.Scanner snr=new java.util.Scanner(ff);
                             List<String> keys=new ArrayList<>();
                             while(snr.hasNextLine()){
@@ -378,7 +308,7 @@ public class Scanner extends AppCompatActivity {
                                 keys.remove(uuid);
                                 Toast.makeText(getApplicationContext(),"key "+uuid,Toast.LENGTH_SHORT).show();
 
-                                FileOutputStream fos = openFileOutput("ReportFailsKeys.txt", MODE_PRIVATE);
+                                FileOutputStream fos = openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"ReportFailsKeys.txt", MODE_PRIVATE);
                                 PrintWriter p = new PrintWriter(fos);
                                 for (String key : keys) {
                                     p.println(key);
@@ -387,7 +317,6 @@ public class Scanner extends AppCompatActivity {
                                 p.close();
                                 Toast.makeText(getApplicationContext(),"key deleted",Toast.LENGTH_SHORT).show();
                             }
-
 
 
                         }
@@ -401,15 +330,15 @@ public class Scanner extends AppCompatActivity {
                 }
             });
 
+
             //clear current state
-            textViewPrice.setText("k 0");
+            textViewPrice.setText("0.0");
             textViewCustomersCash.setText("");
             productName.clear();
             productPrice.clear();
             date.clear();
             timeStamp.clear();
             totalPrice=0F;
-
 
         }
         else{
@@ -420,14 +349,14 @@ public class Scanner extends AppCompatActivity {
 
     public void flashLight(View view){
         if(view.getTag().equals("isOn")) {
-            barcodeView.setTorch(false);
+            barcodeView.setTorchOff();
             view.setTag("isOff");
         }
         else if(view.getTag().equals("isOff")){
-            barcodeView.setTorch(true);
+            barcodeView.setTorchOn();
             view.setTag("isOn");
         }
-    }
+    }//flashLight
 
 
     public void undo(View view){
@@ -436,7 +365,8 @@ public class Scanner extends AppCompatActivity {
         intent.putExtra("prices", (Serializable) productPrice);
         intent.putExtra("dates",(Serializable)date);
         startActivityForResult(intent,1);
-    }
+    }//undo
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent intent) {
@@ -454,7 +384,7 @@ public class Scanner extends AppCompatActivity {
                     totalPrice-=Float.parseFloat(remove);
                 }
 
-                textViewPrice.setText("k "+totalPrice);
+                textViewPrice.setText(" "+totalPrice);
             }
         }
         else{
@@ -468,25 +398,26 @@ public class Scanner extends AppCompatActivity {
 
     }//onActivityResult
 
+
     @Override
     protected void onResume () {
-        barcodeView.resume();
         super.onResume();
-
-    }
+        barcodeView.resume();
+    }//onResume
 
 
     @Override
     protected void onPause(){
         super.onPause();
         barcodeView.pause();
-    }
+
+    }//onPause
 
 
     @Override
     public void onDestroy(){
         super.onDestroy();
-    }
+    }//onDestroy
 
 
-}
+}//Scanner

@@ -113,7 +113,7 @@ public class Group extends AppCompatActivity {
                 username=dataSnapshot.getValue(String.class);
                 //save name to device
                 try {
-                    FileOutputStream file = openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid() + "Name", MODE_PRIVATE);
+                    FileOutputStream file = openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+"Name", MODE_PRIVATE);
                     PrintWriter pw=new PrintWriter(file);
                     pw.println(dataSnapshot.getValue(String.class));
                     pw.close();
@@ -131,8 +131,8 @@ public class Group extends AppCompatActivity {
         });
 
         relativeLayout=findViewById(R.id.rLayout);
-        selectedGroup=getIntent().getStringExtra("group_selected_by_user");
-        reference=database.getReference("ProductionDB/GroupPosts/"+selectedGroup); //reference posts in database based on group selected by used
+        selectedGroup=getIntent().getStringExtra("company");
+        reference=database.getReference("ProductionDB/Company/"+getIntent().getStringExtra("company")+"/GroupPosts/"+selectedGroup); //reference posts in database based on group selected by used
 
         /*
          *load post related information from device storage.
@@ -404,6 +404,7 @@ public class Group extends AppCompatActivity {
                     }
                     else{
                         Toast.makeText(Group.this, "failed to unsubscribe", Toast.LENGTH_SHORT).show();
+
                     }
                 }
             });

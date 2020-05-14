@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--For Dark mode-->
+    <color name="colorPrimaryDM">#333</color>
+    <color name="colorPrimaryDarkDM">#333</color>
+
+    <!--For light mode-->
     <color name="colorPrimary">#fff</color>
     <color name="colorPrimaryDark">#fff</color>
+    <!--end-->
+
+
     <color name="colorAccent">#000</color>
     <color name="black">#000</color>
     <color name="white">#fff</color>

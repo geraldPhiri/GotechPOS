@@ -21,12 +21,7 @@ import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.ChildEventListener;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.GenericTypeIndicator;
+import com.google.firebase.database.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -48,8 +43,10 @@ public class EmployeesLayout extends AppCompatActivity {
         linearLayout=findViewById(R.id.rLayout);
         database=FirebaseDatabase.getInstance();
         reference=database.getReference("ProductionDB/Users/");
+        Query query=reference.orderByChild("Company").equalTo(getIntent().getStringExtra("company"));
         childEventListener=new ChildEventListener() {
-             int count=0;
+            int count=0;
+
             @Override
             public void onChildAdded(@NonNull final DataSnapshot dataSnapshot, @Nullable String s) {
                 FileOutputStream fos=null;
@@ -103,6 +100,15 @@ public class EmployeesLayout extends AppCompatActivity {
                         return false;
                     }
                 }).into(poster);
+
+                //goto profile of user on click on their profile pic
+                poster.setOnClickListener(new View.OnClickListener() {
+
+                    @Override
+                    public void onClick(View v) {
+                        //startActivity(new Intent(EmployeesLayout.this,OthersProfile.class).putExtra("key",key));
+                    }
+                });
 
                 TextView tname=convertView.findViewById(R.id.name);
                 TextView taddress=convertView.findViewById(R.id.address);
@@ -167,7 +173,7 @@ public class EmployeesLayout extends AppCompatActivity {
 
             }
         };
-        reference.addChildEventListener(childEventListener);
+        query.addChildEventListener(childEventListener);
 
     }
 }

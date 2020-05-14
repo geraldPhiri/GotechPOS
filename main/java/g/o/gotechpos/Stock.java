@@ -1,7 +1,9 @@
 package g.o.gotechpos;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -33,6 +35,9 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -67,6 +72,7 @@ import java.util.UUID;
 
 
 public class Stock extends AppCompatActivity {
+    private static String currency;
     private String clickedImageTag;
 
     private StorageReference sr;
@@ -87,7 +93,8 @@ public class Stock extends AppCompatActivity {
     ChildEventListener childEventListener;
     ChildEventListener categoryChildEventListener;
 
-    List<StockItem> stockItems=new ArrayList<>();
+    //List<StockItem> stockItems=new ArrayList<>();
+    List<StockItemView> stockItemsViews=new ArrayList<>();
     //private List<String> productName=new ArrayList();
     //private List<String> productCount=new ArrayList();
     //private List<String> productPrices=new ArrayList<>();
@@ -100,12 +107,27 @@ public class Stock extends AppCompatActivity {
 
     ObservableScrollView scrollView;
     FloatingActionButton floatingActionButton;
+    private AdView ad;
+
+    private static String companyName;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.stock);
 
+        MobileAds.initialize(this);
+
+        ad=(AdView)findViewById(R.id.ad);
+
+        AdRequest adRequest=new AdRequest.Builder().addTestDevice("26880EC7D79E15BF2C65A06B4ABD3C7E").build();
+        ad.loadAd(adRequest);
+
+        currency=getIntent().getStringExtra("currency");
+        if(currency==null){
+            currency="";
+        }
+        companyName=getIntent().getStringExtra("company");
         storage= FirebaseStorage.getInstance();
 
         categoryLayout=findViewById(R.id.category_layout);
@@ -127,7 +149,7 @@ public class Stock extends AppCompatActivity {
         Scanner sc3=null;
         try {
             LayoutInflater layoutInflater=(LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            fis3=openFileInput("Category.txt");
+            fis3=openFileInput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"Category.txt");
             sc3=new java.util.Scanner(fis3);
             while(sc3.hasNextLine()){
                 TextView textView=new TextView(Stock.this);
@@ -151,13 +173,12 @@ public class Stock extends AppCompatActivity {
         }
 
 
-
         //load stock from device
         FileInputStream fis2=null;
         Scanner sc2=null;
         try {
             LayoutInflater layoutInflater=(LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            fis2=openFileInput("Stock.txt");
+            fis2=openFileInput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"Stock.txt");
             sc2=new java.util.Scanner(fis2);
             while(sc2.hasNextLine()){
                 View convertView=layoutInflater.inflate(R.layout.stock_item,null,true);
@@ -165,7 +186,7 @@ public class Stock extends AppCompatActivity {
                 String key=sc2.nextLine();
                 poster.setTag(key);//tag is used later to upload url of pictur being uploaded
                 try {
-                    Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/" +key + ".png"))
+                    Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/"+getIntent().getStringExtra("company")+key + ".png"))
                             .diskCacheStrategy(DiskCacheStrategy.NONE)
                             .skipMemoryCache(true).into(poster);
                 }
@@ -177,11 +198,16 @@ public class Stock extends AppCompatActivity {
                 TextView textViewPrice=convertView.findViewById(R.id.product_price);
                 TextView textViewUnit=convertView.findViewById(R.id.product_unit);
 
-                textViewName.setText(sc2.nextLine());
-                textViewCount.setText(sc2.nextLine());
-                textViewPrice.setText("k"+sc2.nextLine());
-                textViewUnit.setText(sc2.nextLine());
+                String itemName=sc2.nextLine();
+                String itemCount=sc2.nextLine();
+                String itemPrice=sc2.nextLine();
+                String itemUnit=sc2.nextLine();
+                textViewName.setText(itemName);
+                textViewCount.setText(itemCount);
+                textViewPrice.setText(currency+itemPrice);
+                textViewUnit.setText(itemUnit);
 
+                stockItemsViews.add(new StockItemView(Stock.this,itemName, itemCount, itemUnit, itemPrice, ""/*itemCategory*/, key, null,null));
                 linearLayout.addView(convertView);
             }
 
@@ -195,9 +221,10 @@ public class Stock extends AppCompatActivity {
         }
 
         database=FirebaseDatabase.getInstance();
-        reference=database.getReference("ProductionDB/Stock/");
-        categoryRef=database.getReference("ProductionDB/Category/");
+        reference=database.getReference("ProductionDB/Company/"+getIntent().getStringExtra("company")+"/Stock/");
+        categoryRef=database.getReference("ProductionDB/Company/"+getIntent().getStringExtra("company")+"/Category/");
 
+        //ToDo:reimplement
         categoryChildEventListener=new ChildEventListener() {
             int count=0;
             @Override
@@ -206,14 +233,14 @@ public class Stock extends AppCompatActivity {
                 PrintWriter pw=null;
                 try {
                     if(count==0) {
-                        fos = openFileOutput("Category.txt", MODE_PRIVATE);
+                        fos = openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"Category.txt", MODE_PRIVATE);
                         fos.close();
                         categoryLayout.removeAllViews();
                         category.clear();
                         ++count;
                     }
 
-                    fos=openFileOutput("Category.txt",MODE_APPEND);
+                    fos=openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"Category.txt",MODE_APPEND);
                     pw=new PrintWriter(fos);
                 }
                 catch (Exception exception){
@@ -252,44 +279,44 @@ public class Stock extends AppCompatActivity {
                         LayoutInflater layoutInflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
                         linearLayout.removeAllViews();
                         if(!highLightedCategories.isEmpty()) {
-                            for (StockItem stockItem : stockItems) {
-                                if (highLightedCategories.contains(stockItem.category)) {
-                                    final View convertView = layoutInflater.inflate(R.layout.stock_item, null, true);
-                                    TextView textViewName = convertView.findViewById(R.id.product_name);
+                            for (StockItemView stockItem : stockItemsViews) {
+                                if (highLightedCategories.contains(((TextView)stockItem.returnView().findViewById(R.id.category)).getText().toString())) {
+                                    final View convertView = stockItem.returnView();
+                                    /*TextView textViewName = convertView.findViewById(R.id.product_name);
                                     TextView textViewCount = convertView.findViewById(R.id.product_count);
                                     TextView textViewPrice = convertView.findViewById(R.id.product_price);
-                                    TextView textViewUnit = convertView.findViewById(R.id.product_unit);
-                                    ImageView poster=convertView.findViewById(R.id.product_picture);
+                                    TextView textViewUnit = convertView.findViewById(R.id.product_unit);*/
+                                    /*ImageView poster=convertView.findViewById(R.id.product_picture);
                                     try {
-                                        Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/" +stockItem.key + ".png"))
+                                        Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/" +stockItem.getTag() + ".png"))
                                                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                                                 .skipMemoryCache(true).into(poster);
                                     }
                                     catch(Exception exception){
 
-                                    }
+                                    }*/
 
-                                    textViewName.setText(stockItem.name);
-                                    textViewCount.setText(stockItem.count);
-                                    textViewPrice.setText("k" + stockItem.price);
-                                    textViewUnit.setText(stockItem.unit);
+                                  /*  textViewName.setText(((TextView)stockItem.returnView().findViewById(R.id.product_name)).getText().toString());
+                                    textViewCount.setText(((TextView)stockItem.returnView().findViewById(R.id.product_count)).getText().toString());
+                                    textViewPrice.setText("" + ((TextView)stockItem.returnView().findViewById(R.id.product_price)).getText().toString());
+                                    textViewUnit.setText(((TextView)stockItem.returnView().findViewById(R.id.product_unit)).getText().toString());*/
                                     linearLayout.addView(convertView);
                                 }
                             }
                         }
                         else {
-                            for (StockItem stockItem : stockItems) {
-                                    final View convertView = layoutInflater.inflate(R.layout.stock_item, null, true);
-                                    TextView textViewName = convertView.findViewById(R.id.product_name);
+                            for (StockItemView stockItem : stockItemsViews) {
+                                    final View convertView = stockItem.returnView();
+                                    /*TextView textViewName = convertView.findViewById(R.id.product_name);
                                     TextView textViewCount = convertView.findViewById(R.id.product_count);
                                     TextView textViewPrice = convertView.findViewById(R.id.product_price);
                                     TextView textViewUnit = convertView.findViewById(R.id.product_unit);
 
 
-                                    textViewName.setText(stockItem.name);
-                                    textViewCount.setText(stockItem.count);
-                                    textViewPrice.setText("k" + stockItem.price);
-                                    textViewUnit.setText(stockItem.unit);
+                                    textViewName.setText(((TextView)stockItem.findViewById(R.id.product_name)).getText().toString());
+                                    textViewCount.setText(((TextView)stockItem.findViewById(R.id.product_count)).getText().toString());
+                                    textViewPrice.setText("" + ((TextView)stockItem.findViewById(R.id.product_price)).getText().toString());
+                                    textViewUnit.setText(((TextView)stockItem.findViewById(R.id.product_unit)).getText().toString());*/
                                     linearLayout.addView(convertView);
                             }
                         }
@@ -337,17 +364,19 @@ public class Stock extends AppCompatActivity {
             int count=0;
             @Override
             public void onChildAdded(@NonNull final DataSnapshot dataSnapshot, @Nullable String s) {
+
                 FileOutputStream fos=null;
                 PrintWriter pw=null;
                 try {
                     if(count==0) {
-                        fos = openFileOutput("Stock.txt", MODE_PRIVATE);
+                        fos = openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"Stock.txt", MODE_PRIVATE);
                         fos.close();
                         linearLayout.removeAllViews();
+                        stockItemsViews.clear();
                         ++count;
                     }
 
-                    fos=openFileOutput("Stock.txt",MODE_APPEND);
+                    fos=openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"Stock.txt",MODE_APPEND);
                     pw=new PrintWriter(fos);
                 }
                 catch (Exception exception){
@@ -364,7 +393,9 @@ public class Stock extends AppCompatActivity {
                 String itemUnit="";
                 String itemCategory="";
                 String url="";
-                String costPrices="";
+                String costPrice1="";
+                String costPrice2="";
+                String count2="";
                 final String urlCopy;
 
                 try {
@@ -377,7 +408,21 @@ public class Stock extends AppCompatActivity {
                 }
 
                 try{
-                    costPrices=item.get(7);
+                    costPrice1=item.get(7);
+                }
+                catch (Exception e){
+
+                }
+
+                try {
+                    costPrice2=item.get(8);
+
+                }
+                catch (Exception e){
+
+                }
+                try {
+                    count2=item.get(9);
                 }
                 catch (Exception e){
 
@@ -390,7 +435,15 @@ public class Stock extends AppCompatActivity {
                 else {
                     urlCopy="";
                 }
-                stockItems.add(new StockItem(itemName,itemCount,itemUnit,itemPrice,itemCategory,key));
+
+                final String itemCategoryCopy;
+                if(itemCategory!=null || !itemCategory.equals("")){
+                    itemCategoryCopy=itemCategory;
+                }
+                else{
+                    itemCategoryCopy="";
+                }
+
                 /*productName.add(itemName);
                 productCount.add(itemCount);
                 productUnit.add(itemUnit);
@@ -398,6 +451,8 @@ public class Stock extends AppCompatActivity {
 
                 LayoutInflater layoutInflater=(LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
                 final View convertView=layoutInflater.inflate(R.layout.stock_item,null,true);
+                convertView.setTag(dataSnapshot.getKey());
+
                 ImageView poster=convertView.findViewById(R.id.product_picture);
                 poster.setTag(dataSnapshot.getKey());//tag is used later to upload url of picture being uploaded
                 if(!url.equals("")) {
@@ -410,7 +465,7 @@ public class Stock extends AppCompatActivity {
                         @Override
                         public boolean onResourceReady(Bitmap resource, Object model, Target<Bitmap> target, DataSource dataSource, boolean isFirstResource) {
                             try {
-                                FileOutputStream fos2 = new FileOutputStream(new File("/data/data/g.o.gotechpos/files/" + dataSnapshot.getKey() + ".png"));
+                                FileOutputStream fos2 = new FileOutputStream(new File("/data/data/g.o.gotechpos/files/" +getIntent().getStringExtra("company")+dataSnapshot.getKey() + ".png"));
                                 //Bitmap bitmap = ((BitmapDrawable) poster.getDrawable()).getBitmap();
                                 resource.compress(Bitmap.CompressFormat.PNG, 100, fos2);
                                 fos2.flush();
@@ -423,16 +478,22 @@ public class Stock extends AppCompatActivity {
                     }).into(poster);
                 }
 
-
                 TextView textViewName=convertView.findViewById(R.id.product_name);
                 TextView textViewCount=convertView.findViewById(R.id.product_count);
                 TextView textViewPrice=convertView.findViewById(R.id.product_price);
                 TextView textViewUnit=convertView.findViewById(R.id.product_unit);
+                TextView textCategory=convertView.findViewById(R.id.category);
+                //TextView textViewCount2=convertView.findViewById(R.id.product_count2);
 
                 textViewName.setText(itemName);
                 textViewCount.setText(itemCount);
-                textViewPrice.setText("k"+itemPrice);
+                textViewPrice.setText(currency+itemPrice);
                 textViewUnit.setText(itemUnit);
+                textCategory.setText(itemCategory);
+
+                /*if(!count2.equals("")) {
+                    textViewCount2.setText(count2);
+                }*/
 
                 try{
                     //write to file
@@ -449,29 +510,93 @@ public class Stock extends AppCompatActivity {
 
                 }
 
-                final String costPricesCopy=costPrices;
+                final String costPriceCopy=costPrice1;
 
-                final String i=itemUnit;
-                LinearLayout ll=convertView.findViewById(R.id.ll);
+                String i=itemUnit;
+                String unitFormat="mL";
+                if(i!=null){
+                    String[] a=new String[]{"mL","Kg","L","g"};
+                    for(String s1:a){
+                        if(i.contains(s1)){
+                            unitFormat=s1;
+                            i=i.replace(s1,"");
+                            break;
+
+                        }
+                    }
+
+                }
+                final String iCopy=i;
+                final String unitFormatCopy=unitFormat;
+                /*LinearLayout ll=convertView.findViewById(R.id.ll);
                 ll.setTag(dataSnapshot.getKey());
+                final String count2Copy=count2;
+                ll.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        startActivity(new Intent(Stock.this,MiniAddActivity.class)
+                                .putExtra("key",convertView.getTag().toString())
+                                .putExtra("cost_price",itemPrice)
+                                .putExtra("count2",count2Copy)
+
+                                .putExtra("name",itemName)
+                                .putExtra("price",itemPrice)
+                                .putExtra("count",itemCount)
+                                .putExtra("unit",i.trim())
+                                .putExtra("category",(Serializable)category)
+                                .putExtra("url",urlCopy)
+                                .putExtra("cost_prices",costPriceCopy)
+
+                        );
+                    }
+                });*/
+
+                /*ll.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        File file = new File(itemName+"_useCount2.txt");
+                        if(file.exists()){
+                            file.delete();
+                            Toast.makeText(getApplicationContext(),"using count 1",Toast.LENGTH_SHORT).show();
+                        }
+                        else{
+                            try{
+                                FileOutputStream fos=openFileOutput(itemName+"_useCount2.txt",MODE_PRIVATE);
+                                PrintWriter pw=new PrintWriter(fos);
+                                pw.close();
+                                fos.close();
+                                Toast.makeText(getApplicationContext(),"using count 2",Toast.LENGTH_SHORT).show();
+                            }
+                            catch (Exception e){
+                                Toast.makeText(getApplicationContext(),e.toString(),Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                        return true;
+                    }
+                });*/
+
                 convertView.setTag(dataSnapshot.getKey());
-                convertView.findViewById(R.id.edit_button3).setOnClickListener(new View.OnClickListener() {
+                View.OnClickListener one=new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         startActivity(new Intent(Stock.this,AddProduct.class)
+                                .putExtra("company",companyName)
                                 .putExtra("barcode",convertView.getTag().toString())
                                 .putExtra("name",itemName)
                                 .putExtra("price",itemPrice)
                                 .putExtra("count",itemCount)
-                                .putExtra("unit",i)
+                                .putExtra("unit",iCopy)
+                                .putExtra("unitFormat",unitFormatCopy)
                                 .putExtra("category",(Serializable)category)
                                 .putExtra("url",urlCopy)
-                                .putExtra("cost_prices",costPricesCopy)
+                                .putExtra("cost_prices",costPriceCopy)
+                                .putExtra("itemCategory",itemCategoryCopy)
 
                         );
                     }
-                });
-                convertView.findViewById(R.id.delete_button).setOnClickListener(new View.OnClickListener() {
+                };
+
+                View.OnClickListener two=new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         reference.child(convertView.getTag().toString()).setValue(null).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -488,7 +613,7 @@ public class Stock extends AppCompatActivity {
                                  */
                                 try {
                                     List<List<String>> list=new ArrayList<>();
-                                    FileInputStream file = openFileInput("Stock.txt");
+                                    FileInputStream file = openFileInput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"Stock.txt");
                                     Scanner sc=new Scanner(file);
                                     while(sc.hasNextLine()){
                                         String sc1=sc.nextLine();
@@ -511,10 +636,10 @@ public class Stock extends AppCompatActivity {
                                             )));
                                         }
                                     }
-                                    FileOutputStream fileOutputStream=openFileOutput("Stock.txt",MODE_PRIVATE);
+                                    FileOutputStream fileOutputStream=openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"Stock.txt",MODE_PRIVATE);
                                     fileOutputStream.close();
                                     fileOutputStream=null;
-                                    fileOutputStream=openFileOutput("Stock.txt",MODE_APPEND);
+                                    fileOutputStream=openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"Stock.txt",MODE_APPEND);
                                     PrintWriter pw=new PrintWriter(fileOutputStream);
                                     for(List<String> item:list){
                                         pw.println(item.get(0));
@@ -536,9 +661,15 @@ public class Stock extends AppCompatActivity {
                             }
                         });
                     }
-                });
+                };
 
-                linearLayout.addView(convertView);
+                final StockItemView stockItemView=new StockItemView(Stock.this,itemName, itemCount, itemUnit, itemPrice, itemCategory, key, one,two);
+                stockItemView.setView(convertView);
+                stockItemsViews.add(stockItemView);
+                /*convertView.findViewById(R.id.edit_button3).setOnClickListener(one);
+                convertView.findViewById(R.id.delete_button).setOnClickListener(two);*/
+
+                linearLayout.addView(stockItemView.returnView());
 
                 //make sure file is saved
                 try {
@@ -553,6 +684,39 @@ public class Stock extends AppCompatActivity {
 
             @Override
             public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                ArrayList<String> item=dataSnapshot.getValue(new GenericTypeIndicator<ArrayList<String>>(){});
+                final String url=item.get(5);
+                final String key=dataSnapshot.getKey();
+                View convertView = linearLayout.findViewWithTag(key);
+                ImageView poster = convertView.findViewById(R.id.product_picture);
+
+                /*int index=linearLayout.indexOfChild(convertView);
+                linearLayout.removeViewAt(index);*/
+
+                Glide.with(poster.getContext()).asBitmap().load(url).listener(new RequestListener<Bitmap>() {
+                        @Override
+                        public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Bitmap> target, boolean isFirstResource) {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean onResourceReady(Bitmap resource, Object model, Target<Bitmap> target, DataSource dataSource, boolean isFirstResource) {
+                            try {
+                                FileOutputStream fos2 = new FileOutputStream(new File("/data/data/g.o.gotechpos/files/" + getIntent().getStringExtra("company") + key + ".png"));
+                                //Bitmap bitmap = ((BitmapDrawable) poster.getDrawable()).getBitmap();
+                                resource.compress(Bitmap.CompressFormat.PNG, 100, fos2);
+                                fos2.flush();
+                                fos2.close();
+                            } catch (Exception exception) {
+                                Toast.makeText(getApplicationContext(), "error", Toast.LENGTH_SHORT).show();
+                            }
+                            return false;
+                        }
+                    }).into(poster);
+                //ToDo:Load other info in convertView and save to file
+
+                //linearLayout.addView(convertView,index);
+
 
             }
 
@@ -571,6 +735,7 @@ public class Stock extends AppCompatActivity {
 
             }
         };
+
         categoryRef.addChildEventListener(categoryChildEventListener);
         reference.addChildEventListener(childEventListener);
 
@@ -589,10 +754,33 @@ public class Stock extends AppCompatActivity {
 
     public void setPhoto(View view) {
         clickedImageTag=view.getTag().toString();
-        Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_PICK);
-        intent.setType("image/*");
-        startActivityForResult(intent, 2);
+
+        new AlertDialog.Builder(Stock.this)
+                .setTitle("Set Photo")
+                .setMessage("Upload or use our photos")
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                })
+                .setPositiveButton("Upload", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Intent intent = new Intent();
+                        intent.setAction(Intent.ACTION_PICK);
+                        intent.setType("image/*");
+                        startActivityForResult(intent, 2);
+                    }
+                })
+                .setNeutralButton("Our Photos", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        startActivity(new Intent(Stock.this, ChoosePictureActivity.class).putExtra("company",companyName).putExtra("tag",clickedImageTag));
+                    }
+                })
+                .create()
+                .show();
 
     }
 
@@ -600,9 +788,9 @@ public class Stock extends AppCompatActivity {
     public void addToStock(View view){
         Intent intent=new Intent(this,AddStock.class);
         intent.putExtra("category",(Serializable) category);
+        intent.putExtra("company",companyName);
         startActivity(intent);
     }
-
 
 
     //set sortBy field and carryout highlight operation
@@ -611,7 +799,7 @@ public class Stock extends AppCompatActivity {
         TextView textView=(TextView)view;
         textView.setTextColor(Color.parseColor("#000000"));
         textView.setTypeface(Typeface.DEFAULT_BOLD);
-        StockItem.sortBy=Integer.parseInt(view.getTag().toString());
+        StockItemView.sortBy=Integer.parseInt(view.getTag().toString());
         for(int id:ids){
             if(view.getId()!=id){
                 TextView textView1=findViewById(id);
@@ -621,7 +809,7 @@ public class Stock extends AppCompatActivity {
         }
 
         //sort
-        sort(stockItems);
+        sort(stockItemsViews);
 
 
     }
@@ -631,7 +819,8 @@ public class Stock extends AppCompatActivity {
      * 2.clear linearlayout
      * 3.add views
      */
-    public void sort(List<StockItem> list){
+
+    public void sort(List<StockItemView> list){
         Collections.sort(list);
 
         LayoutInflater layoutInflater=(LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -640,7 +829,7 @@ public class Stock extends AppCompatActivity {
         String currentCategory="";
 
 
-        for(StockItem stockItem:list){
+        for(final StockItemView stockItem:list){
             if(!currentCategory.equals(stockItem.category)){
                 //testview to use to indicate categories
                 TextView textView=new TextView(Stock.this);
@@ -649,25 +838,27 @@ public class Stock extends AppCompatActivity {
                 currentCategory=stockItem.category;
             }
 
-            View convertView=layoutInflater.inflate(R.layout.stock_item,null,true);
-            TextView textViewName=convertView.findViewById(R.id.product_name);
+            final View convertView=stockItem.returnView();//layoutInflater.inflate(R.layout.stock_item,null,true);
+            /*TextView textViewName=convertView.findViewById(R.id.product_name);
             TextView textViewCount=convertView.findViewById(R.id.product_count);
             TextView textViewPrice=convertView.findViewById(R.id.product_price);
-            TextView textViewUnit=convertView.findViewById(R.id.product_unit);
-            ImageView poster=convertView.findViewById(R.id.product_picture);
+            TextView textViewUnit=convertView.findViewById(R.id.product_unit);*/
+            /*ImageView poster=convertView.findViewById(R.id.product_picture);
             try {
                 Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/" +stockItem.key + ".png"))
                         .diskCacheStrategy(DiskCacheStrategy.NONE)
                         .skipMemoryCache(true).into(poster);
             }
             catch(Exception exception){
+                Toast.makeText(getApplicationContext(),exception.toString(),Toast.LENGTH_SHORT).show();
+            }*/
 
-            }
 
-            textViewName.setText(stockItem.name);
+            /*textViewName.setText(stockItem.name);
             textViewCount.setText(stockItem.count);
-            textViewPrice.setText("k"+stockItem.price);
-            textViewUnit.setText(stockItem.unit);
+            textViewPrice.setText(""+stockItem.price);
+            textViewUnit.setText(stockItem.unit);*/
+
 
             linearLayout.addView(convertView);
         }
@@ -691,8 +882,6 @@ public class Stock extends AppCompatActivity {
     }
 
 
-
-
     /*
      *1. clear LinearLayout.
      *2. Add views to LinearLayout that have searchString.
@@ -708,13 +897,13 @@ public class Stock extends AppCompatActivity {
         String searchString=editTextSearch.getText().toString();
         if(searchString==null || searchString.equals("")){
             linearLayout.removeAllViews();
-            for(StockItem stockItem:stockItems){
+            for(StockItemView stockItem:stockItemsViews){
                 linearLayout.addView(stockItem.yieldNullOrHighlightedStockItem(Stock.this,null,null,true));
             }
             return;
         }
         linearLayout.removeAllViews();
-        for(StockItem stockItem:stockItems){
+        for(StockItemView stockItem:stockItemsViews){
             final View convertView=stockItem.yieldNullOrHighlightedStockItem(Stock.this,toSearchProperty,searchString,false);
             if(convertView!=null) {
                 linearLayout.addView(convertView);
@@ -755,7 +944,7 @@ public class Stock extends AppCompatActivity {
                     InputStream is = getContentResolver().openInputStream(uri);
                     Bitmap bitmap = BitmapFactory.decodeStream(is);
                     //upload file
-                    sr = storage.getReference(UUID.randomUUID().toString())/*.child(FirebaseAuth.getInstance().getCurrentUser().getUid())*/;
+                    sr = storage.getReference(companyName+"/"+UUID.randomUUID().toString())/*.child(FirebaseAuth.getInstance().getCurrentUser().getUid())*/;
                     if(uri!=null) {
                         sr.putFile(uri).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                             @Override
@@ -808,174 +997,225 @@ public class Stock extends AppCompatActivity {
             }
         }
 
-
     }//onActivityResult()
 
 
-    public void onProductPicClick(View view){
+    static class StockItemView extends View implements Comparable<StockItemView>{
+        static final int SORTBYNAME=0;
+        static final int SORTBYPRICE=1;
+        static final int SORTBYCOUNT=2;
+        static final int SORTBYUNIT=3;
+        //static  final int SORTBYCATEGORY=4;
 
-    }
+        static int sortBy=SORTBYNAME;//default sortBY
 
-    public void miniAddProduct(View view){
-        if(view.getTag()!=null) {
-            startActivity(new Intent(Stock.this, MiniAddActivity.class).putExtra("key", view.getTag().toString()));
-        }
-    }
+        String key;
+        String name;
+        String count;
+        String unit;
+        String price;
+        String category;
+        Context context;
+        final OnClickListener one, two;
 
-}
-
-
-
-
-class StockItem implements Comparable<StockItem>{
-    static final int SORTBYNAME=0;
-    static final int SORTBYPRICE=1;
-    static final int SORTBYCOUNT=2;
-    static final int SORTBYUNIT=3;
-    //static  final int SORTBYCATEGORY=4;
-
-    static int sortBy=SORTBYNAME;//default sortBY
-
-    String key;
-    String name;
-    String count;
-    String unit;
-    String price;
-    String category;
-
-    public StockItem(String name, String count, String unit, String price, String category, String key){
-        this.name=name;
-        this.count=count;
-        this.unit=unit;
-        this.price=price;
-        this.category=category;
-        this.key=key;
-    }
-
-    @Override
-    public int compareTo(StockItem o){
-        List<String> list1=new ArrayList(Arrays.asList(/*category,*/name,price,count,unit));
-        List<String> list2=new ArrayList(Arrays.asList(/*o.category,*/o.name,o.price,o.count,o.unit));
+        View convertView;
 
 
+        public StockItemView(Context context,String name, String count, String unit, String price, String category, String key, final View.OnClickListener one,final View.OnClickListener two){
+            super(context);
+			/*inflate(super.getContext(),R.layout.stock_item);
+			TextView textViewName=findViewById(R.id.product_name);
+			TextView textViewCount=findViewById(R.id.product_count);
+			TextView textViewPrice=findViewById(R.id.product_price);
+			TextView textViewUnit=findViewById(R.id.product_unit);
+			TextView textCategory=findViewById(R.id.category);
+			//TextView textViewCount2=convertView.findViewById(R.id.product_count2);
 
-        //move to sortby item to front of arrays
-        String string1=list1.get(sortBy);
-        String string2=list2.get(sortBy);
+			textViewName.setText(name);
+			textViewCount.setText(count);
+			textViewPrice.setText(""+price);
+			textViewUnit.setText(unit);
+			textCategory.setText(category);*/
 
-        list1.remove(sortBy);
-        list2.remove(sortBy);
-
-        list1.add(0,string1);
-        list2.add(0,string2);
-
-
-
-
-        //compare
-        for(int i=0;i<list1.size();i++){
-
-            int result=list1.get(i).compareTo(list2.get(i));
-            try{
-                Double d1=Double.parseDouble(list1.get(i));
-                Double d2=Double.parseDouble(list2.get(i));
-
-                result=d1.compareTo(d2);
-            }
-            catch (Exception e){
-
-            }
-            if(result==0){
-                continue;
-            }
-            return result;
+            this.one=one;
+            this.two=two;
+            this.context=context;
+            this.name=name;
+            this.count=count;
+            this.unit=unit;
+            this.price=price;
+            this.category=category;
+            this.key=key;
+            convertView=returnView();
         }
 
-        return 0;
-    }
+        void setView(View view){
+            convertView=view;
+        }
+        View returnView(){
+            if(convertView==null) {
+                convertView = inflate(context, R.layout.stock_item, null);
+                ImageView poster = convertView.findViewById(R.id.product_picture);
+                poster.setTag(key);
+                try {
+                    Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/" + companyName + key + ".png"))
+                            .diskCacheStrategy(DiskCacheStrategy.NONE)
+                            .skipMemoryCache(true).into(poster);
+                } catch (Exception exception) {
+                    //Toast.makeText(getApplicationContext(),exception.toString(),Toast.LENGTH_SHORT).show();
+                    System.out.println(exception.toString());
+                }
+
+                TextView textViewName = convertView.findViewById(R.id.product_name);
+                TextView textViewCount = convertView.findViewById(R.id.product_count);
+                TextView textViewPrice = convertView.findViewById(R.id.product_price);
+                TextView textViewUnit = convertView.findViewById(R.id.product_unit);
+                TextView textCategory = convertView.findViewById(R.id.category);
+                //TextView textViewCount2=convertView.findViewById(R.id.product_count2);
+
+                textViewName.setText(name);
+                textViewCount.setText(count);
+                textViewPrice.setText(currency + price);
+                textViewUnit.setText(unit);
+                textCategory.setText(category);
+            }
+            convertView.findViewById(R.id.edit_button3).setOnClickListener(one);
+            convertView.findViewById(R.id.delete_button).setOnClickListener(two);
+
+            return convertView;
+        }//returnView
+
+        @Override
+        public int compareTo(StockItemView o){
+            List<String> list1=new ArrayList(Arrays.asList(/*category,*/name,price,count,unit));
+            List<String> list2=new ArrayList(Arrays.asList(/*o.category,*/o.name,o.price,o.count,o.unit));
+
+
+
+            //move to sortby item to front of arrays
+            String string1=list1.get(sortBy);
+            String string2=list2.get(sortBy);
+
+            list1.remove(sortBy);
+            list2.remove(sortBy);
+
+            list1.add(0,string1);
+            list2.add(0,string2);
+
+
+            //compare
+            for(int i=0;i<list1.size();i++){
+
+                int result=list1.get(i).compareTo(list2.get(i));
+                try{
+                    Double d1=Double.parseDouble(list1.get(i));
+                    Double d2=Double.parseDouble(list2.get(i));
+
+                    result=d1.compareTo(d2);
+                }
+                catch (Exception e){
+
+                }
+                if(result==0){
+                    continue;
+                }
+                return result;
+            }
+
+            return 0;
+        }
 
     /*public boolean contains(String string){
         return (name.contains(string) || count.contains(string) || unit.contains(string)||price.contains(string));
     }*/
 
-    /**
-     * @param string is String to search for and highlight in StockItem
-     * @return View with highlighted string highlighted
-     */
-    public View yieldNullOrHighlightedStockItem(Context context, List<Boolean> toSearchBy,String string,boolean returnUnchanged){
-        LayoutInflater layoutInflater=(LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        final View convertView=layoutInflater.inflate(R.layout.stock_item,null,true);
-        ImageView poster=convertView.findViewById(R.id.product_picture);
-        try {
-            Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/" +key + ".png"))
-                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                    .skipMemoryCache(true).into(poster);
-        }
-        catch(Exception exception){
+        /**
+         * @param string is String to search for and highlight in StockItem
+         * @return View with highlighted string highlighted
+         */
+        public View yieldNullOrHighlightedStockItem(Context context, List<Boolean> toSearchBy,String string,boolean returnUnchanged){
+            //LayoutInflater layoutInflater=(LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            //.convertView=layoutInflater.inflate(R.layout.stock_item,null,true);
+            convertView.findViewById(R.id.edit_button3).setOnClickListener(one);
+            convertView.findViewById(R.id.delete_button).setOnClickListener(two);
+            ImageView poster=convertView.findViewById(R.id.product_picture);
+            poster.setTag(key);
+            try {
+                Glide.with(poster.getContext()).load(new File("/data/data/g.o.gotechpos/files/"+companyName+key + ".png"))
+                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                        .skipMemoryCache(true).into(poster);
+            }
+            catch(Exception exception){
+                System.out.println(exception.toString());
+            }
+			
+            List<TextView> textViews=new ArrayList<>(Arrays.asList(
+                    (TextView)convertView.findViewById(R.id.product_name),
+                    (TextView)convertView.findViewById(R.id.product_count),
+                    (TextView)convertView.findViewById(R.id.product_unit),
+                    (TextView)convertView.findViewById(R.id.product_price)
+            )
+            );
+            if(returnUnchanged){
+                textViews.get(0).setText(this.name);
+                textViews.get(1).setText(this.count);
+                textViews.get(2).setText(this.unit);
+                textViews.get(3).setText(currency+this.price);
 
-        }
-        List<TextView> textViews=new ArrayList<>(Arrays.asList(
-                (TextView)convertView.findViewById(R.id.product_name),
-                (TextView)convertView.findViewById(R.id.product_count),
-                (TextView)convertView.findViewById(R.id.product_unit),
-                (TextView)convertView.findViewById(R.id.product_price)
-        )
-        );
-        if(returnUnchanged){
-            textViews.get(0).setText(this.name);
-            textViews.get(1).setText(this.count);
-            textViews.get(2).setText(this.unit);
-            textViews.get(3).setText(this.price);
+                return convertView;
+            }
 
+
+            //base search on searchBy given by user
+            String string3=string.toLowerCase();
+            List<String> properties=new ArrayList(Arrays.asList(this.name,this.count,this.unit,this.price));
+            boolean toReturnNull=true;
+            for(int j=0;j<toSearchBy.size();j++){
+                if(toSearchBy.get(j)){
+                    String searchInHere=properties.get(j);
+                    if(j==3){
+                        searchInHere=""+properties.get(j);
+                    }
+                    SpannableString spannableString = new SpannableString((CharSequence)searchInHere);
+                    String string5 = searchInHere.toLowerCase();
+                    boolean bl = false;
+                    for (int i = 0; i < string5.length(); ++i) {
+                        if (string3.charAt(0) != string5.charAt(i)) continue;
+                        if (string5.substring(i, string5.length()).length() < string3.length()) break;
+                        if (!string5.substring(i, i + string3.length()).equals((Object)string3)) continue;
+                        spannableString.setSpan((Object)new ForegroundColorSpan(Color.parseColor((String)"blue")), i, i + string3.length(), 18);
+                        bl = true;
+                        toReturnNull=false;
+                    }
+                    if (!bl){
+                        textViews.get(j).setText(searchInHere);
+                    }
+                    else {
+                        textViews.get(j).setText((CharSequence) spannableString);
+                    }
+
+                }
+                else {
+                    textViews.get(j).setText(j==3?currency+properties.get(j):properties.get(j));
+                }
+
+
+            }
+
+
+			/*textViewName.setText(stockItem.name);
+			textViewCount.setText(stockItem.count);
+			textViewPrice.setText("price: k"+stockItem.price);
+			textViewUnit.setText(stockItem.unit);*/
+            if(toReturnNull){
+                return null;
+            }
             return convertView;
         }
 
-
-        //base search on searchBy given by user
-        String string3=string.toLowerCase();
-        List<String> properties=new ArrayList(Arrays.asList(this.name,this.count,this.unit,this.price));
-        boolean toReturnNull=true;
-        for(int j=0;j<toSearchBy.size();j++){
-            if(toSearchBy.get(j)){
-                String searchInHere=properties.get(j);
-                if(j==3){
-                    searchInHere="k"+properties.get(j);
-                }
-                SpannableString spannableString = new SpannableString((CharSequence)searchInHere);
-                String string5 = searchInHere.toLowerCase();
-                boolean bl = false;
-                for (int i = 0; i < string5.length(); ++i) {
-                    if (string3.charAt(0) != string5.charAt(i)) continue;
-                    if (string5.substring(i, string5.length()).length() < string3.length()) break;
-                    if (!string5.substring(i, i + string3.length()).equals((Object)string3)) continue;
-                    spannableString.setSpan((Object)new ForegroundColorSpan(Color.parseColor((String)"blue")), i, i + string3.length(), 18);
-                    bl = true;
-                    toReturnNull=false;
-                }
-                if (!bl){
-                    textViews.get(j).setText(searchInHere);
-                }
-                else {
-                    textViews.get(j).setText((CharSequence) spannableString);
-                }
-
-            }
-            else {
-                textViews.get(j).setText(j==3?"k"+properties.get(j):properties.get(j));
-            }
+    }//class StockItem
 
 
-        }
+}//Stock
 
 
-        /*textViewName.setText(stockItem.name);
-        textViewCount.setText(stockItem.count);
-        textViewPrice.setText("price: k"+stockItem.price);
-        textViewUnit.setText(stockItem.unit);*/
-        if(toReturnNull){
-            return null;
-        }
-        return convertView;
-    }
-
-}//class StockItem

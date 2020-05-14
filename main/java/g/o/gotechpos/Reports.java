@@ -29,6 +29,10 @@ import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.IFillFormatter;
 import com.github.mikephil.charting.interfaces.dataprovider.LineDataProvider;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -54,6 +58,7 @@ import java.util.Scanner;
 public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChangeListener{
   HashSet<String> employeesHashSet=new HashSet<>();
 
+  String company;
   ArrayList<Entry> values = new ArrayList<>();
 
   private LineChart chart;
@@ -62,16 +67,37 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
   TextView reportTitle;
   LinearLayout linearLayout;
 
+  Query query;
   FirebaseDatabase database;
   DatabaseReference reference;
   ChildEventListener childEventListener;
 
+  private String currency;
+
   List<ReportItem> reportItems=new ArrayList<ReportItem>();
+  private AdView ad;
+
+  private String uid=null;
 
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.reports);
+
+    MobileAds.initialize(this);
+
+    ad=(AdView)findViewById(R.id.ad);
+
+    AdRequest adRequest=new AdRequest.Builder().addTestDevice("26880EC7D79E15BF2C65A06B4ABD3C7E").build();
+    ad.loadAd(adRequest);
+
+    currency=getIntent().getStringExtra("currency");
+    if(currency==null){
+      currency="";
+    }
+
+    company=getIntent().getStringExtra("company");
+
     linearLayout=findViewById(R.id.listview_report);
     reportTitle=findViewById(R.id.report_title);
 
@@ -79,7 +105,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
     FileInputStream fis2=null;
     Scanner sc2=null;
     try {
-      fis2=openFileInput("Reports.txt");
+      fis2=openFileInput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"Reports.txt");
       sc2=new java.util.Scanner(fis2);
       while(sc2.hasNextLine()){
         String a=sc2.nextLine();
@@ -91,7 +117,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
         employeesHashSet.add(d);
       }
 
-      dailyIndicator(reportItems);
+      dailyIndicator(reportItems,Reports.this.uid);
 
     }
     catch (Exception exception){
@@ -104,7 +130,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
 
 
     database=FirebaseDatabase.getInstance();
-    reference=database.getReference("ProductionDB/Reports/");
+    reference=database.getReference("ProductionDB/Company/"+getIntent().getStringExtra("company")+"/Reports/");
     childEventListener=new ChildEventListener() {
       int count=0;
 
@@ -114,7 +140,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
         PrintWriter pw=null;
         try {
           if(count==0) {
-            fos = openFileOutput("Reports.txt", MODE_PRIVATE);
+            fos = openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"Reports.txt", MODE_PRIVATE);
             fos.close();
             reportItems.clear();
             employeesHashSet.clear();
@@ -122,7 +148,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
             ++count;
           }
 
-          fos=openFileOutput("Reports.txt",MODE_APPEND);
+          fos=openFileOutput(FirebaseAuth.getInstance().getCurrentUser().getUid()+"_"+getIntent().getStringExtra("company")+"_"+"Reports.txt",MODE_APPEND);
           pw=new PrintWriter(fos);
         }
         catch (Exception exception){
@@ -137,7 +163,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
           final String itemName = item.get(0);
           final String itemPrice = item.get(1);
           final String date = item.get(2);
-          final String uuid=item.get(3);
+          final String uuid=item.get(4);
           employeesHashSet.add(uuid);
 
           reportItems.add(new ReportItem(itemName,itemPrice,date,uuid));
@@ -149,7 +175,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
                         TextView textViewDate = convertView.findViewById(R.id.date);
 
                         textViewName.setText(itemName);
-                        textViewCount.setText("k"+itemPrice);
+                        textViewCount.setText(currency+itemPrice);
                         //textViewDate.setText(date);
                         */
 
@@ -247,7 +273,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
     item2.setActiveTextColor(Color.parseColor("#E64B4E"));
     bnb.addItem(item2);
 
-    /*BottomItem item4 = new BottomItem();
+    BottomItem item4 = new BottomItem();
     item4.setMode(BottomItem.DRAWABLE_MODE);
     item4.setText("Employees");
     item4.setActiveIconResID(getResources().getIdentifier("ic_people", "drawable",
@@ -256,7 +282,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
             getApplicationInfo().packageName));
     item4.setInactiveTextColor(Color.parseColor("#000000"));
     item4.setActiveTextColor(Color.parseColor("#E64B4E"));
-    bnb.addItem(item4);*/
+    bnb.addItem(item4);
 
     bnb.addOnSelectedListener(new BottomNavigationBar.OnSelectedListener() {
       @Override
@@ -264,17 +290,17 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
         if(newPosition==0){
           reportTitle.setText("Daily");
           linearLayout.removeAllViews();
-          dailyIndicator(reportItems);
+          dailyIndicator(reportItems, Reports.this.getUid());
         }
         else if(newPosition==1){
           reportTitle.setText("Weekly");
           linearLayout.removeAllViews();
-          weeklyIndicator(reportItems);
+          weeklyIndicator(reportItems, Reports.this.getUid());
         }
         else if(newPosition==2){
           reportTitle.setText("Monthly");
           linearLayout.removeAllViews();
-          monthlyIndicator(reportItems);
+          monthlyIndicator(reportItems,Reports.this.getUid());
 
         }
         else if(newPosition==3){
@@ -287,18 +313,16 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
     });
     bnb.setSelectedPosition(0); //Set default item
 
-
-
     bnb.initialize();
 
-    Query query=reference.orderByChild("2");
+    query=reference.orderByChild("2");
     query.addChildEventListener(childEventListener);
 
 
   }
 
   public void listEmployees(){
-    startActivityForResult(new Intent(Reports.this,EmployeesLayout.class),1);
+    startActivityForResult(new Intent(Reports.this,EmployeesLayout.class).putExtra("company",company),1);
   }
 
   @Override
@@ -307,21 +331,36 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
     if(requestCode==1){
       if(resultCode==RESULT_OK){
         String uuid=data.getStringExtra("uuid");
-
-
+        Toast.makeText(getApplicationContext(),uuid,Toast.LENGTH_SHORT).show();
+        Reports.this.uid=uuid;
+        dailyIndicator(reportItems,uuid);
+      }
+      else{
+        //...
       }
     }
 
+  }//onActivityResult
+
+  String getUid(){
+    return uid;
   }
 
   @Override
   protected void onDestroy() {
     reference.removeEventListener(childEventListener);
+    query.removeEventListener(childEventListener);
 
     super.onDestroy();
+  }//onDestroy
+
+  public void showAll(View view){
+    uid=null;
+    linearLayout.removeAllViews();
+    dailyIndicator(reportItems,null);
   }
 
-  public void dailyIndicator(final List<ReportItem> reportItems){
+  public void dailyIndicator(final List<ReportItem> reportItems, final String EMP_ID){
     Collections.sort(reportItems);
     //to help set tags that will be used to show a popup of products sold on a particular day
     int tagStart=0;
@@ -339,7 +378,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
       //TextView textViewDate = convertView.findViewById(R.id.date);
 
       //textViewName.setText(reportItem.productName);
-      //textViewCount.setText("k"+reportItem.price);
+      //textViewCount.setText(currency+reportItem.price);
 
       String date=reportItem.dateSold;
       //group by date
@@ -347,7 +386,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
         if(dailyTotal!=0F){
           View totalView = layoutInflater.inflate(R.layout.total_layout, null, true);
           TextView t=totalView.findViewById(R.id.textview_total);
-          t.setText("k"+dailyTotal);
+          t.setText(currency+dailyTotal);
 
           totalView.setTag(tagStart+"-"+tagEnd);
           totalView.setOnClickListener(new View.OnClickListener() {
@@ -358,7 +397,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
               // Toast.makeText(getApplicationContext(),tag,Toast.LENGTH_LONG).show();
               int end=Integer.parseInt(tag.split("-")[1]);
               for(int i=Integer.parseInt(tag.split("-")[0]); i<end; i++){
-                popupMenu.getMenu().add(reportItems.get(i).productName+"\t"+"k"+reportItems.get(i).price);
+                popupMenu.getMenu().add(reportItems.get(i).productName+"\t"+currency+reportItems.get(i).price);
               }
               popupMenu.show();
             }
@@ -377,12 +416,19 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
         testDay=date;
 
       }
-      dailyTotal+=Float.parseFloat(reportItem.price);
+      if(EMP_ID==null) {
+        dailyTotal += Float.parseFloat(reportItem.price);
+      }
+      else{
+        if(reportItem.sellerUuid.equals(EMP_ID)){
+          dailyTotal += Float.parseFloat(reportItem.price);
+        }
+      }
       //linearLayout.addView(convertView);
     }
     View totalView = layoutInflater.inflate(R.layout.total_layout, null, true);
     TextView t=totalView.findViewById(R.id.textview_total);
-    t.setText("k"+dailyTotal);
+    t.setText(currency+dailyTotal);
 
     totalView.setTag(tagStart+"-"+(tagEnd+1));
     totalView.setOnClickListener(new View.OnClickListener() {
@@ -393,7 +439,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
         //Toast.makeText(getApplicationContext(),tag,Toast.LENGTH_LONG).show();
         int end=Integer.parseInt(tag.split("-")[1]);
         for(int i=Integer.parseInt(tag.split("-")[0]); i<end; i++){
-          popupMenu.getMenu().add(reportItems.get(i).productName+"\t"+"k"+reportItems.get(i).price);
+          popupMenu.getMenu().add(reportItems.get(i).productName+"\t"+currency+reportItems.get(i).price);
         }
         popupMenu.show();
       }
@@ -402,7 +448,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
 
   }
 
-  public void weeklyIndicator(final List<ReportItem> reportItems){
+  public void weeklyIndicator(final List<ReportItem> reportItems, final String EMP_ID){
     Collections.sort(reportItems);
     int tagStart=0;
     int tagEnd=-1;
@@ -422,7 +468,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
       //TextView textViewDate = convertView.findViewById(R.id.date);
 
       //textViewName.setText(reportItem.productName);
-      //textViewCount.setText("k"+reportItem.price);
+      //textViewCount.setText(currency+reportItem.price);
       //textViewDate.setText(reportItem.dateSold);
 
 
@@ -449,7 +495,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
         if(weeklyTotal!=0F){
           View totalView = layoutInflater.inflate(R.layout.total_layout, null, true);
           TextView t=totalView.findViewById(R.id.textview_total);
-          t.setText("k"+weeklyTotal);
+          t.setText(""+weeklyTotal);
 
           totalView.setTag(tagStart+"-"+tagEnd);
           totalView.setOnClickListener(new View.OnClickListener() {
@@ -460,7 +506,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
               //Toast.makeText(getApplicationContext(),tag,Toast.LENGTH_LONG).show();
               int end=Integer.parseInt(tag.split("-")[1]);
               for(int i=Integer.parseInt(tag.split("-")[0]); i<end; i++){
-                popupMenu.getMenu().add(reportItems.get(i).productName+"\t"+"k"+reportItems.get(i).price);
+                popupMenu.getMenu().add(reportItems.get(i).productName+"\t"+""+reportItems.get(i).price);
               }
               popupMenu.show();
             }
@@ -477,13 +523,21 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
         linearLayout.addView(textView);
         testWeek = week;
       }
-      weeklyTotal+=Float.parseFloat(reportItem.price);
+
+      if(EMP_ID==null) {
+        weeklyTotal+=Float.parseFloat(reportItem.price);
+      }
+      else{
+        if(reportItem.sellerUuid.equals(EMP_ID)){
+          weeklyTotal+=Float.parseFloat(reportItem.price);
+        }
+      }
 
       //linearLayout.addView(convertView);
     }
     View totalView = layoutInflater.inflate(R.layout.total_layout, null, true);
     TextView t=totalView.findViewById(R.id.textview_total);
-    t.setText("k"+weeklyTotal);
+    t.setText(currency+weeklyTotal);
 
     totalView.setTag(tagStart+"-"+(tagEnd+1));
     totalView.setOnClickListener(new View.OnClickListener() {
@@ -494,7 +548,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
         //Toast.makeText(getApplicationContext(),tag,Toast.LENGTH_LONG).show();
         int end=Integer.parseInt(tag.split("-")[1]);
         for(int i=Integer.parseInt(tag.split("-")[0]); i<end; i++){
-          popupMenu.getMenu().add(reportItems.get(i).productName+"\t"+"k"+reportItems.get(i).price);
+          popupMenu.getMenu().add(reportItems.get(i).productName+"\t"+""+reportItems.get(i).price);
         }
         popupMenu.show();
       }
@@ -503,7 +557,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
     weeklyTotal=0F;
   }
 
-  public void monthlyIndicator(final List<ReportItem> reportItems){
+  public void monthlyIndicator(final List<ReportItem> reportItems, final String EMP_ID){
     values.clear();
 
     Collections.sort(reportItems);
@@ -523,7 +577,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
       //TextView textViewDate = convertView.findViewById(R.id.date);
 
       //textViewName.setText(reportItem.productName);
-      //textViewCount.setText("k"+reportItem.price);
+      //textViewCount.setText(currency+reportItem.price);
       //textViewDate.setText(reportItem.dateSold);
 
 
@@ -534,7 +588,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
         if(monthlyTotal!=0F){
           View totalView = layoutInflater.inflate(R.layout.total_layout, null, true);
           TextView t=totalView.findViewById(R.id.textview_total);
-          t.setText("k"+monthlyTotal);
+          t.setText(currency+monthlyTotal);
 
           values.add(new Entry(Integer.parseInt(m), monthlyTotal));
           totalView.setTag(tagStart+"-"+tagEnd);
@@ -547,7 +601,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
                             //Toast.makeText(getApplicationContext(),tag,Toast.LENGTH_LONG).show();
                             int end=Integer.parseInt(tag.split("-")[1]);
                             for(int i=Integer.parseInt(tag.split("-")[0]); i<end; i++){
-                                content.add(reportItems.get(i).productName+"\t"+"k"+reportItems.get(i).price);
+                                content.add(reportItems.get(i).productName+"\t"+currency+reportItems.get(i).price);
                             }
                             //popupMenu.show();
                             startActivity(new Intent(Reports.this,Menu.class).putExtra("content",(Serializable)content));*/
@@ -557,7 +611,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
               //Toast.makeText(getApplicationContext(),tag,Toast.LENGTH_LONG).show();
               int end=Integer.parseInt(tag.split("-")[1]);
               for(int i=Integer.parseInt(tag.split("-")[0]); i<end; i++){
-                popupMenu.getMenu().add(reportItems.get(i).productName+"\t"+"k"+reportItems.get(i).price);
+                popupMenu.getMenu().add(reportItems.get(i).productName+"\t"+currency+reportItems.get(i).price);
               }
               popupMenu.show();
             }
@@ -575,7 +629,15 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
         linearLayout.addView(textView);
         testMonth = month;
       }
-      monthlyTotal+=Float.parseFloat(reportItem.price);
+
+      if(EMP_ID==null) {
+        monthlyTotal+=Float.parseFloat(reportItem.price);
+      }
+      else{
+        if(reportItem.sellerUuid.equals(EMP_ID)){
+          monthlyTotal+=Float.parseFloat(reportItem.price);
+        }
+      }
       //linearLayout.addView(convertView);
     }
 
@@ -583,7 +645,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
 
     View totalView = layoutInflater.inflate(R.layout.total_layout, null, true);
     TextView t=totalView.findViewById(R.id.textview_total);
-    t.setText("k"+monthlyTotal);
+    t.setText(currency+monthlyTotal);
     totalView.setTag(tagStart+"-"+(tagEnd+1));
     totalView.setOnClickListener(new View.OnClickListener() {
       @Override
@@ -593,7 +655,7 @@ public class Reports extends AppCompatActivity implements SeekBar.OnSeekBarChang
         //Toast.makeText(getApplicationContext(),tag,Toast.LENGTH_LONG).show();
         int end=Integer.parseInt(tag.split("-")[1]);
         for(int i=Integer.parseInt(tag.split("-")[0]); i<end; i++){
-          popupMenu.getMenu().add(reportItems.get(i).productName+"\t"+"k"+reportItems.get(i).price);
+          popupMenu.getMenu().add(reportItems.get(i).productName+"\t"+currency+reportItems.get(i).price);
         }
         popupMenu.show();
       }

@@ -16,6 +16,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.*;
 
 public class Registration extends AppCompatActivity {
     FirebaseAuth fa;
@@ -35,7 +36,7 @@ public class Registration extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if(email.getText().toString().trim().contains("@") && !password.getText().toString().trim().isEmpty()) {
-                    fa.createUserWithEmailAndPassword(email.getText().toString(), password.getText().toString()).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                    fa.createUserWithEmailAndPassword(email.getText().toString(),password.getText().toString()).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
                             if (task.isSuccessful()) {
@@ -57,10 +58,12 @@ public class Registration extends AppCompatActivity {
                     });
                 }
                 else{
-                    //Toast.makeText(getApplicationContext(), "Check the details you entered, and only northrise university students can register", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Fill all fields", Toast.LENGTH_SHORT).show();
                 }
             }//onClick
         });
 
     }
+
+
 }

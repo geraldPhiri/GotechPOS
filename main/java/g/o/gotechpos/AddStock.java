@@ -60,21 +60,25 @@ public class AddStock extends AppCompatActivity {
         spinner.setAdapter(adapter);
 
         database= FirebaseDatabase.getInstance();
-        reference=database.getReference("ProductionDB/Stock/");
+        reference=database.getReference("ProductionDB/Company/"+intent.getStringExtra("company")+"/Stock/");
 
-    }
+    }//onCreate
 
 
     public void onSubmit(View view){
-        String name=editTextName.getText().toString();
-        String count=editTextCount.getText().toString();
-        String price=editTextPrice.getText().toString();
-        String barcode=editTextBarcode.getText().toString();
-        String unit=editTextUnit.getText().toString()+" "+spinner.getSelectedItem().toString();
-        String category=autoCompleteTextView.getText().toString();
-        if(!editTextCostPrice.getText().toString().equals("")){
-            costPrice=editTextCostPrice.getText().toString();
+        if(editTextBarcode.getText().toString().isEmpty()){
+            Toast.makeText(getApplicationContext(),"Fill in barcode", Toast.LENGTH_SHORT).show();
         }
+        else{
+            String name=editTextName.getText().toString();
+            String count=editTextCount.getText().toString();
+            String price=editTextPrice.getText().toString();
+            String barcode=editTextBarcode.getText().toString();
+            String unit=editTextUnit.getText().toString()+" "+spinner.getSelectedItem().toString();
+            String category=autoCompleteTextView.getText().toString();
+            if(!editTextCostPrice.getText().toString().equals("")){
+                costPrice=editTextCostPrice.getText().toString();
+            }
 
         /*try {
             FileOutputStream fos = openFileOutput(getIntent().getStringExtra("barcode") + ".txt", MODE_PRIVATE);
@@ -87,13 +91,15 @@ public class AddStock extends AppCompatActivity {
             Toast.makeText(getApplicationContext(),ex.toString(),Toast.LENGTH_LONG).show();
         }*/
 
-        reference.child(barcode)
-                .setValue(new ArrayList<String>(
-                        Arrays.asList(name,count,price,unit,category,"",UUID.randomUUID().toString(), costPrice)));
+            reference.child(barcode)
+                    .setValue(new ArrayList<String>(
+                            Arrays.asList(name,count,price,unit,category,"",UUID.randomUUID().toString(), costPrice)));
 
 
-        finish();
-    }
+            finish();
+        }
+
+    }//onSubmit
 
 
 }

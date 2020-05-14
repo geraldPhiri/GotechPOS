@@ -15,11 +15,12 @@
             android:singleLine="true"/>
         <Button
             android:text="Add"
+            android:layout_centerHorizontal="true"
             android:layout_marginBottom="10sp"
             android:layout_alignParentBottom="true"
             android:onClick="sendCategoryBack"
             android:background="#00AAFF"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
 </RelativeLayout>

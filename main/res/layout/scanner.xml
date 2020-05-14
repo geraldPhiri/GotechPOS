@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+       xmlns:app="http://schemas.android.com/apk/res-auto">
 <RelativeLayout android:id="@+id/rl"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -6,7 +8,7 @@
     android:background="#fff"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <com.journeyapps.barcodescanner.BarcodeView
+    <!--<com.journeyapps.barcodescanner.BarcodeView
         android:orientation="vertical"
         android:id="@+id/fragmentg"
         android:layout_width="match_parent"
@@ -14,7 +16,20 @@
         app:zxing_framing_rect_width="250dp"
         app:zxing_framing_rect_height="100dp">
 
-    </com.journeyapps.barcodescanner.BarcodeView>
+    </com.journeyapps.barcodescanner.BarcodeView>-->
+
+
+        <!--
+        This Activity is typically full-screen. Therefore we can safely use centerCrop scaling with
+        a SurfaceView, without fear of weird artifacts. -->
+        <com.journeyapps.barcodescanner.DecoratedBarcodeView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/fragmentg"
+                app:zxing_preview_scaling_strategy="centerCrop"
+                app:zxing_use_texture_view="false"/>
+
+
 
 
     <ImageView
@@ -56,15 +71,15 @@
         android:weightSum="3"
         >
         <TextView
-            android:id="@+id/textview_price"
-            android:text="k 0"
-            android:textSize="22sp"
-            android:textColor="#fff"
-            android:gravity="center"
-            android:layout_width="0sp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            />
+                android:id="@+id/textview_price"
+                android:text="0"
+                android:textSize="22sp"
+                android:textColor="#fff"
+                android:gravity="center"
+                android:layout_width="0sp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+        />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/imgCapture"
@@ -83,6 +98,7 @@
             android:background="@drawable/conered_rect"
             android:layout_width="wrap_content"
             android:singleLine="true"
+            android:inputType="number"
             android:gravity="center"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -90,3 +106,4 @@
     </LinearLayout>
 
 </RelativeLayout>
+        </merge>
